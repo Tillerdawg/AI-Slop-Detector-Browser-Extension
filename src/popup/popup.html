@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AI Slop Detector</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <span class="header__emoji">🕵️</span>
+    <span class="header__title">AI Slop Detector</span>
+  </header>
+
+  <main id="result-area" class="result-area">
+    <p class="muted">Loading…</p>
+  </main>
+
+  <section class="quick-settings">
+    <label class="toggle-row">
+      <span>Enabled</span>
+      <input type="checkbox" id="toggle-enabled" />
+    </label>
+    <label class="toggle-row">
+      <span>Show panel on watch page</span>
+      <input type="checkbox" id="toggle-watch" />
+    </label>
+    <label class="toggle-row">
+      <span>Show badges on thumbnails</span>
+      <input type="checkbox" id="toggle-thumbs" />
+    </label>
+  </section>
+
+  <footer class="footer">
+    <button id="open-options" type="button">More settings…</button>
+  </footer>
+
+  <script src="../lib/constants.js"></script>
+  <script src="../lib/browserApi.js"></script>
+  <script src="../lib/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

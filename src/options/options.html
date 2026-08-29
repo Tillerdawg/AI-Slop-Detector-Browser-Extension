@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AI Slop Detector — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="page">
+    <h1>🕵️ AI Slop Detector — Settings</h1>
+
+    <section class="card">
+      <h2>Display</h2>
+      <label class="row"><input type="checkbox" id="enabled" /> Enabled</label>
+      <label class="row"><input type="checkbox" id="showOnWatchPage" /> Show detail panel on the watch page</label>
+      <label class="row"><input type="checkbox" id="showOnThumbnails" /> Show badges on thumbnails (home, search, recommended)</label>
+    </section>
+
+    <section class="card">
+      <h2>Sensitivity</h2>
+      <p class="hint">How aggressively to flag videos. This only changes the score cutoffs, not what's measured.</p>
+      <label class="row">
+        <select id="strictness">
+          <option value="lenient">Lenient — only flag strong signals</option>
+          <option value="balanced">Balanced (recommended)</option>
+          <option value="strict">Strict — flag on weaker signals</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Upload-cadence signal</h2>
+      <label class="row"><input type="checkbox" id="useChannelCadence" /> Check how often the channel uploads (via its public feed)</label>
+      <p class="hint">
+        This is one of the strongest signals (content-mill channels often post many videos a day) but requires an
+        extra network request per new channel encountered. Results are cached for 24 hours per channel, and
+        requests are throttled, to keep this light. Uses YouTube's public RSS feed by default, or the Data API
+        below if you supply a key.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Optional: YouTube Data API key</h2>
+      <p class="hint">
+        Without a key, upload cadence comes from YouTube's public RSS feed (works out of the box, no signup).
+        Adding a free
+        <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Data API v3 key</a>
+        gives more reliable channel age / total-upload-count data too, at a fraction of the free daily quota.
+        The key is stored only in your browser and only ever sent to googleapis.com.
+      </p>
+      <label class="row">
+        <input type="password" id="youtubeApiKey" placeholder="AIza…" style="width: 100%; max-width: 360px;" />
+      </label>
+      <div class="row">
+        <button id="testApiKey" type="button">Test key</button>
+        <span id="apiKeyStatus" class="hint"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Channel overrides</h2>
+      <p class="hint">Channels you've manually marked as trusted (human-made) or flagged (AI slop), from the ✅/🚩 buttons on the watch-page panel. These always take priority over the heuristic score.</p>
+      <ul id="overridesList" class="overrides-list"></ul>
+      <p id="overridesEmpty" class="hint">No overrides yet.</p>
+    </section>
+
+    <section class="card">
+      <h2>Cache</h2>
+      <p class="hint"><span id="cacheStats">–</span></p>
+      <button id="clearCache" type="button">Clear cached scores</button>
+    </section>
+
+    <section class="card">
+      <h2>Community ratings (coming soon)</h2>
+      <p class="hint">
+        A future update will optionally layer in crowd-sourced ratings (similar to SponsorBlock) on top of these
+        local heuristics, backed by a small hosted service. Not wired up yet — this extension works entirely
+        locally today. When available, you'll be able to point it at a backend URL here:
+      </p>
+      <label class="row">
+        <input type="text" id="communityApiUrl" placeholder="https://…  (leave blank — not yet available)" style="width: 100%; max-width: 360px;" disabled />
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Privacy</h2>
+      <p class="hint">
+        Everything runs locally in your browser. The only network requests this extension makes are:
+        direct GET requests to <code>youtube.com/feeds/videos.xml</code> for upload cadence, and — only if you add
+        a key above — to <code>googleapis.com</code>. No usage data, browsing history, or telemetry is sent
+        anywhere.
+      </p>
+    </section>
+
+    <p id="savedNote" class="saved-note" hidden>Saved ✓</p>
+  </div>
+
+  <script src="../lib/constants.js"></script>
+  <script src="../lib/browserApi.js"></script>
+  <script src="../lib/storage.js"></script>
+  <script src="../lib/dataApi.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

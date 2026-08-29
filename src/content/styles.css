@@ -1,0 +1,111 @@
+/* AI Slop Detector - injected UI styles. Scoped with an `aislop-` prefix to
+   avoid colliding with YouTube's own class names. */
+
+.aislop-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 60;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #fff;
+  background: var(--aislop-color, #888);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  cursor: help;
+  white-space: nowrap;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+.aislop-badge--pending {
+  background: #6b6b6b;
+  opacity: 0.75;
+}
+.aislop-badge--pending::after {
+  content: '…';
+}
+
+.aislop-panel {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--aislop-color, #888);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--yt-spec-badge-chip-background, rgba(128, 128, 128, 0.08));
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 13px;
+}
+
+.aislop-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aislop-panel__emoji {
+  font-size: 16px;
+}
+
+.aislop-panel__label {
+  font-weight: 600;
+}
+
+.aislop-panel__score {
+  opacity: 0.8;
+}
+
+.aislop-panel__confidence {
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.aislop-panel__toggle {
+  margin-left: auto;
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.aislop-panel__body {
+  margin-top: 8px;
+}
+
+.aislop-panel__body ul {
+  margin: 0 0 8px 18px;
+  padding: 0;
+}
+
+.aislop-panel__body li {
+  margin-bottom: 2px;
+}
+
+.aislop-panel__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.aislop-panel__actions button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.aislop-panel__note {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.65;
+}

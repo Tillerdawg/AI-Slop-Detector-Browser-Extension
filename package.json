@@ -1,0 +1,13 @@
+{
+  "name": "ai-slop-detector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser extension that rates YouTube videos for likely AI-generated content.",
+  "scripts": {
+    "icons": "python icons/generate_icons.py",
+    "build": "node build/build.js",
+    "build:all": "npm run icons && npm run build",
+    "lint": "node build/lint.js",
+    "test": "node test/heuristics.test.js"
+  }
+}
