@@ -36,9 +36,11 @@ verdict of fact. Treat it as a strong hint, not a certainty.
 npm run build:all   # generates icons + builds dist/chrome and dist/firefox
 ```
 
-(`npm run icons` needs Python + Pillow: `pip install pillow`. The PNGs are
-already checked into `icons/`, so you only need to re-run this if you change
-the icon design.)
+(`npm run icons` needs Python 3 + Pillow: `pip3 install pillow` (or `pip
+install pillow` on Windows). It runs via `build/run-python.js`, which tries
+`python3` then falls back to `python`, so it works whichever your platform
+provides. The PNGs are already checked into `icons/`, so you only need to
+re-run this if you change the icon design.)
 
 **Chrome / Edge / Brave:**
 1. Go to `chrome://extensions`, enable "Developer mode".
