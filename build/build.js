@@ -45,8 +45,9 @@ function baseManifest() {
     manifest_version: 3,
     name: 'AI Slop Detector for YouTube',
     version: VERSION,
+    // Chrome Web Store rejects manifest descriptions over 132 characters.
     description:
-      "Estimates whether a YouTube video is likely AI-generated (soulless TTS voiceover + stock footage) from public metadata, and shows a rating before you click.",
+      'Rates YouTube videos for signs of AI-generated content (TTS voiceover, stock footage, clickbait titling) before you click.',
     icons: {
       16: 'icons/icon-16.png',
       32: 'icons/icon-32.png',
