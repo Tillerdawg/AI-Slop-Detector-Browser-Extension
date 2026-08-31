@@ -26,10 +26,15 @@ weighted signals from metadata:
 - **Template uniformity** across a channel's recent upload titles.
 
 Each signal is optional — if data for it isn't available, it's simply left
-out of the weighted average rather than assumed to be zero. The result is a
-0–10 score (0 = likely human-made, 10 = likely AI-generated), a confidence
-level, and a plain-English list of reasons, not a verdict of fact. Treat it
-as a strong hint, not a certainty.
+out of the weighted average rather than assumed to be zero. Internally this
+produces a 0–100 likelihood score, but that number is never shown to you —
+it only decides which of four bands the video lands in (🛑 Likely
+AI-Generated, ⚠️ Likely AI-Assisted, ❓ Mixed/Uncertain, ✅ Likely Human-Made).
+What you actually see is that band plus a plain-English list of reasons
+explaining it either way (e.g. "Title uses clickbait / content-mill
+phrasing," or "Description doesn't reference AI-generation tools or
+stock-footage sources" when it doesn't), not a raw number or a confidence
+percentage. Treat it as a strong hint, not a verdict of fact.
 
 ## Install (development / unpacked)
 
@@ -58,15 +63,17 @@ PowerShell `Compress-Archive`) — handy for store-upload flows later.
 
 ## Using it
 
-- **Watch page**: a card appears near the title with the rating, a "Why?"
-  breakdown, and buttons to manually mark that *video* as trusted or
-  flagged (your own local override, always wins over the heuristic).
+- **Watch page**: a card appears near the title with the band (e.g. "✅
+  Likely Human-Made"), a "Why?" toggle that lists the reasons behind it, and
+  buttons to manually mark that *video* as trusted or flagged (your own
+  local override, always wins over the heuristic, and only affects that one
+  video — not the whole channel).
 - **Thumbnails** (home/search/recommended): a small badge appears in the
-  corner once scrolled into view; hover it for the breakdown. An instant
-  title-only estimate shows first, then upgrades once the fuller check
-  (channel cadence, etc.) resolves.
-- **Toolbar popup**: click the icon on a watch page for the same rating, plus
-  quick on/off toggles.
+  corner once scrolled into view; hover it for the same band + reasons. An
+  instant title-only estimate shows first, then upgrades once the fuller
+  check (channel cadence, etc.) resolves.
+- **Toolbar popup**: click the icon on a watch page for the same band and
+  reasons, plus quick on/off toggles.
 - **Options page** (right-click icon → Options, or "More settings…" in the
   popup): per-surface toggles, sensitivity (lenient/balanced/strict),
   optional YouTube Data API key, video override list, and a cache clearer.
@@ -129,5 +136,5 @@ No telemetry, no accounts. Network requests this extension makes:
 
 `backend/` has a scaffold (Cloudflare Worker + D1) for an optional future
 layer where users vote on videos SponsorBlock-style, aggregated and shown
-alongside the local heuristic score. It's **not deployed or wired into the
+alongside the local heuristic result. It's **not deployed or wired into the
 extension** — see `backend/README.md` for what's there and what's left to do.
