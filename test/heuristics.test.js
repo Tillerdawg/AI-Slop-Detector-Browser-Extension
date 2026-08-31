@@ -93,5 +93,54 @@ function assert(cond, msg) {
   assert(order[strict.band] >= order[lenient.band], 'strict mode should never be less aggressive than lenient for the same score');
 }
 
+// 7. scoreVideo() exposes a per-signal breakdown, in a fixed order, one entry per signal.
+{
+  const r = heuristics.scoreVideo({ title: 'A perfectly normal title' });
+  assert(Array.isArray(r.breakdown), 'result should include a breakdown array');
+  assert(r.breakdown.length === 7, 'breakdown should have one entry per signal (got ' + (r.breakdown && r.breakdown.length) + ')');
+  assert(r.breakdown[0].key === 'disclosure', 'first breakdown entry should be the disclosure signal (got ' + (r.breakdown[0] && r.breakdown[0].key) + ')');
+}
+
+// 8. A signal with insufficient data is marked unevaluated but still reports its max weight;
+//    a signal that did fire reports its weight/subscore/contribution.
+{
+  const r = heuristics.scoreVideo({ title: 'A perfectly normal title', disclosedSynthetic: true });
+  const uploadCadence = r.breakdown.find((b) => b.key === 'uploadCadence');
+  assert(uploadCadence && uploadCadence.evaluated === false, 'uploadCadence has no upload dates, should be unevaluated');
+  assert(uploadCadence && uploadCadence.maxWeight === 20, 'uploadCadence maxWeight should be 20 (got ' + (uploadCadence && uploadCadence.maxWeight) + ')');
+  const disclosure = r.breakdown.find((b) => b.key === 'disclosure');
+  assert(disclosure && disclosure.evaluated === true, 'disclosure signal fired, should be evaluated');
+  assert(disclosure && disclosure.weight === 40 && disclosure.subscore === 1 && disclosure.contribution === 40, 'disclosure breakdown entry should report weight 40, subscore 1, contribution 40 (got ' + JSON.stringify(disclosure) + ')');
+}
+
+// 9. totalWeight is the sum of weights of only the evaluated signals (matches what confidence is derived from).
+{
+  const r = heuristics.scoreVideo({ title: 'A perfectly normal title', disclosedSynthetic: true });
+  const evaluatedWeightSum = r.breakdown.filter((b) => b.evaluated).reduce((sum, b) => sum + b.weight, 0);
+  assert(r.totalWeight === evaluatedWeightSum, 'totalWeight should equal the sum of evaluated signals\' weights (got ' + r.totalWeight + ' vs ' + evaluatedWeightSum + ')');
+}
+
+// 10. An overridden result (manual trust/flag) has no signal breakdown -- it wasn't derived from signals.
+{
+  const r = heuristics.scoreVideo({ title: 'x' }, { override: { trusted: true } });
+  assert(Array.isArray(r.breakdown) && r.breakdown.length === 0, 'overridden result should have an empty breakdown');
+  assert(r.totalWeight === 0, 'overridden result should have totalWeight 0');
+}
+
+// 10b. An unevaluated breakdown entry explains what's missing, not just "not enough data".
+{
+  const r = heuristics.scoreVideo({ title: 'A perfectly normal title' });
+  const uploadCadence = r.breakdown.find((b) => b.key === 'uploadCadence');
+  assert(typeof uploadCadence.hint === 'string' && uploadCadence.hint.length > 0, 'unevaluated entries should carry a hint explaining why (got ' + JSON.stringify(uploadCadence) + ')');
+}
+
+// 11. formatScore() renders the 0-100 internal score as a 0-10 display string, one decimal place.
+{
+  assert(heuristics.formatScore(11) === '1.1/10', 'formatScore(11) should be "1.1/10" (got ' + heuristics.formatScore(11) + ')');
+  assert(heuristics.formatScore(0) === '0.0/10', 'formatScore(0) should be "0.0/10" (got ' + heuristics.formatScore(0) + ')');
+  assert(heuristics.formatScore(100) === '10.0/10', 'formatScore(100) should be "10.0/10" (got ' + heuristics.formatScore(100) + ')');
+  assert(heuristics.formatScore(45) === '4.5/10', 'formatScore(45) should be "4.5/10" (got ' + heuristics.formatScore(45) + ')');
+}
+
 console.log(`\n${passed} passed, ${failed} failed.`);
 process.exit(failed ? 1 : 0);

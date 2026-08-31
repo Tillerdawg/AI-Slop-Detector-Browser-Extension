@@ -2,6 +2,7 @@
   const AISlop = window.AISlop;
   const C = AISlop.constants;
   const api = AISlop.browserApi;
+  const heuristics = AISlop.heuristics;
 
   const resultArea = document.getElementById('result-area');
 
@@ -24,7 +25,7 @@
       <div class="result-band" style="color:${info.color}">
         <span>${info.emoji}</span><span>${info.label}</span>
       </div>
-      <div class="result-meta">Score ${result.score}/100 &middot; confidence: ${result.confidence}${result.overridden ? ' &middot; manual override' : ''}</div>
+      <div class="result-meta">Score ${heuristics.formatScore(result.score)} &middot; confidence: ${result.confidence}${result.overridden ? ' &middot; manual override' : ''}</div>
       <ul class="result-reasons">${reasons}</ul>
     `);
   }

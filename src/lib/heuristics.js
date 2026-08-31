@@ -180,14 +180,56 @@
     };
   }
 
+  // Order here is what drives breakdown ordering in the UI. maxWeight must
+  // match each scorer's own `weight` (duplicated here because a scorer
+  // returns null -- no weight at all -- when it lacks enough data to run).
+  // `unevaluatedHint` explains what's missing when a signal returns null --
+  // shown in place of the generic "not enough data" in the UI breakdown, so
+  // it needs to stay true regardless of which video triggered the null.
   const SIGNAL_SCORERS = [
-    scoreDisclosure,
-    scoreUploadCadence,
-    scoreChannelAgeVsVolume,
-    scoreTitlePatterns,
-    scoreDescriptionPatterns,
-    scoreTitleTemplateUniformity,
-    scoreLengthDensityMismatch,
+    {
+      key: 'disclosure',
+      label: "YouTube's own disclosure label",
+      maxWeight: 40,
+      fn: scoreDisclosure,
+      unevaluatedHint: "No disclosure label present on this video -- absence isn't scored as evidence",
+    },
+    {
+      key: 'uploadCadence',
+      label: 'Upload cadence',
+      maxWeight: 20,
+      fn: scoreUploadCadence,
+      unevaluatedHint: 'Needs at least 4 recent uploads from this channel',
+    },
+    {
+      key: 'channelAgeVsVolume',
+      label: 'Channel age vs. output volume',
+      maxWeight: 12,
+      fn: scoreChannelAgeVsVolume,
+      unevaluatedHint: 'Needs a YouTube Data API key (optional, set in Settings)',
+    },
+    { key: 'titlePatterns', label: 'Title patterns', maxWeight: 10, fn: scoreTitlePatterns, unevaluatedHint: 'No title text available for this video' },
+    {
+      key: 'descriptionPatterns',
+      label: 'Description patterns',
+      maxWeight: 8,
+      fn: scoreDescriptionPatterns,
+      unevaluatedHint: 'No description text available for this video',
+    },
+    {
+      key: 'titleTemplateUniformity',
+      label: 'Title template uniformity',
+      maxWeight: 6,
+      fn: scoreTitleTemplateUniformity,
+      unevaluatedHint: 'Needs at least 5 recent upload titles from this channel',
+    },
+    {
+      key: 'lengthDensityMismatch',
+      label: 'Length vs. title mismatch',
+      maxWeight: 4,
+      fn: scoreLengthDensityMismatch,
+      unevaluatedHint: 'Only applies to videos 15+ minutes long',
+    },
   ];
 
   /**
@@ -195,7 +237,9 @@
    * @param {object} [opts]
    * @param {string} [opts.strictness] 'lenient' | 'balanced' | 'strict'
    * @param {object} [opts.override] { trusted: bool, flagged: bool } manual channel override
-   * @returns {{ score:number, band:string, confidence:string, reasons:string[], overridden:boolean }}
+   * @returns {{ score:number, band:string, confidence:string, reasons:string[], overridden:boolean,
+   *   totalWeight:number, breakdown:Array<{key:string, label:string, maxWeight:number, evaluated:boolean,
+   *   weight?:number, subscore?:number, contribution?:number, reason?:string|null, hint?:string}> }}
    */
   function scoreVideo(signals, opts) {
     opts = opts || {};
@@ -207,6 +251,8 @@
           confidence: 'manual',
           reasons: ['You marked this channel as trusted'],
           overridden: true,
+          breakdown: [],
+          totalWeight: 0,
         };
       }
       if (opts.override.flagged) {
@@ -216,6 +262,8 @@
           confidence: 'manual',
           reasons: ['You marked this channel as AI slop'],
           overridden: true,
+          breakdown: [],
+          totalWeight: 0,
         };
       }
     }
@@ -224,14 +272,34 @@
     let totalWeight = 0;
     let usedSignals = 0;
     const reasons = [];
+    const breakdown = [];
 
-    for (const scorer of SIGNAL_SCORERS) {
-      const result = scorer(signals);
-      if (!result) continue; // insufficient data for this signal, skip entirely
+    for (const signal of SIGNAL_SCORERS) {
+      const result = signal.fn(signals);
+      if (!result) {
+        breakdown.push({
+          key: signal.key,
+          label: signal.label,
+          maxWeight: signal.maxWeight,
+          evaluated: false,
+          hint: signal.unevaluatedHint,
+        });
+        continue; // insufficient data for this signal, skip entirely
+      }
       totalWeight += result.weight;
       weightedSum += result.weight * result.subscore;
       usedSignals++;
       if (result.reason) reasons.push(result.reason);
+      breakdown.push({
+        key: signal.key,
+        label: signal.label,
+        maxWeight: signal.maxWeight,
+        evaluated: true,
+        weight: result.weight,
+        subscore: result.subscore,
+        contribution: Math.round(result.weight * result.subscore),
+        reason: result.reason || null,
+      });
     }
 
     const score = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : 0;
@@ -254,7 +322,16 @@
       reasons.push(totalWeight === 0 ? 'Not enough data collected yet' : 'No strong AI-content signals detected');
     }
 
-    return { score, band, confidence, reasons, overridden: false };
+    return { score, band, confidence, reasons, overridden: false, breakdown, totalWeight };
+  }
+
+  /**
+   * Renders the internal 0-100 score for display as a 0-10 scale, one
+   * decimal place (e.g. 11 -> "1.1/10"). Display-only -- scoring, band
+   * cutoffs, and breakdown weights all stay on their native 0-100 scale.
+   */
+  function formatScore(score) {
+    return (score / 10).toFixed(1) + '/10';
   }
 
   /**
@@ -267,5 +344,5 @@
     return scoreVideo({ title }, opts);
   }
 
-  AISlop.heuristics = { scoreVideo, quickScoreFromTitle, median, daysBetween };
+  AISlop.heuristics = { scoreVideo, quickScoreFromTitle, formatScore, median, daysBetween };
 })(typeof self !== 'undefined' ? self : this);

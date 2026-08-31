@@ -27,8 +27,9 @@ weighted signals from metadata:
 
 Each signal is optional — if data for it isn't available, it's simply left
 out of the weighted average rather than assumed to be zero. The result is a
-0–100 score, a confidence level, and a plain-English list of reasons, not a
-verdict of fact. Treat it as a strong hint, not a certainty.
+0–10 score (0 = likely human-made, 10 = likely AI-generated), a confidence
+level, and a plain-English list of reasons, not a verdict of fact. Treat it
+as a strong hint, not a certainty.
 
 ## Install (development / unpacked)
 

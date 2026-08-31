@@ -50,7 +50,7 @@
     badge.textContent = info.emoji + ' ' + info.short;
     badge.style.setProperty('--aislop-color', info.color);
     const reasonText = (result.reasons || []).map((r) => '• ' + r).join('\n');
-    badge.title = `${info.label} (score ${result.score}/100, confidence: ${result.confidence})\n${reasonText}`;
+    badge.title = `${info.label} (score ${AISlop.heuristics.formatScore(result.score)}, confidence: ${result.confidence})\n${reasonText}`;
   }
 
   function removeBadges(root2) {

@@ -49,6 +49,14 @@
     ],
   };
 
+  // Shared copy for the score-breakdown UI (watch panel + popup), so the
+  // explanation reads identically in both places.
+  const SCORE_LEGEND = {
+    scale: 'Score: how AI-like this video looks, from 0 (likely human-made) to 10 (likely AI-generated).',
+    confidence:
+      'Confidence: how much of the evidence below we could actually check for this video (some signals need channel history we may not have) -- not how sure we are about the result.',
+  };
+
   const RATING_BANDS = {
     ai_generated: { label: 'Likely AI-Generated', emoji: '\u{1F6D1}', color: '#e0483d', short: 'AI-Generated' },
     ai_assisted: { label: 'Likely AI-Assisted', emoji: '\u{26A0}\u{FE0F}', color: '#e0913d', short: 'AI-Assisted' },
@@ -127,6 +135,7 @@
     STORAGE_KEYS,
     DEFAULT_SETTINGS,
     STRICTNESS_BANDS,
+    SCORE_LEGEND,
     RATING_BANDS,
     AI_DISCLOSURE_PHRASES,
     DESCRIPTION_BOILERPLATE_PATTERNS,
