@@ -88,7 +88,7 @@ function firefoxManifest() {
   m.background = { scripts: [...BACKGROUND_LIB_JS, 'background/background.js'] };
   m.browser_specific_settings = {
     gecko: {
-      id: 'ai-slop-detector@example.invalid',
+      id: 'ai-slop-detector@tillerdawg.github.io',
       strict_min_version: '115.0',
     },
   };
