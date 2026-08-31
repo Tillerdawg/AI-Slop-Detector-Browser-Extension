@@ -121,8 +121,11 @@ extension in `chrome://extensions` or `about:debugging`.
 
 ## Privacy
 
-No telemetry, no accounts. Here's every network request this extension
-makes:
+The full policy (for the Chrome Web Store / Firefox AMO listings, or
+anyone curious) is at
+[claude.ai/code/artifact/485476ad-2f8e-4c41-a9bd-7da88fe9c66e](https://claude.ai/code/artifact/485476ad-2f8e-4c41-a9bd-7da88fe9c66e).
+The short version: no telemetry, no accounts. Here's every network request
+this extension makes:
 - `GET https://www.youtube.com/feeds/videos.xml?channel_id=...` for upload
   cadence, throttled and cached for 24 hours per channel.
 - `GET https://www.googleapis.com/youtube/v3/...`, and only if you've
