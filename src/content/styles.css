@@ -37,6 +37,16 @@
   background: var(--yt-spec-badge-chip-background, rgba(128, 128, 128, 0.08));
   font-family: Roboto, Arial, sans-serif;
   font-size: 13px;
+  /* Don't rely on inherited page color: depending on where findMountPoint()
+     lands us, the ancestor chain may or may not be a YouTube component that
+     explicitly sets its own (theme-correct) text color, so plain
+     inheritance is unreliable and can land us on black-on-black. YouTube
+     flags its own dark theme with a `dark` attribute on <html>. */
+  color: #0f0f0f;
+}
+
+html[dark] .aislop-panel {
+  color: #f1f1f1;
 }
 
 .aislop-panel__header {
