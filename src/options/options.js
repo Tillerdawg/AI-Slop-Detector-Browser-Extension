@@ -58,14 +58,14 @@
     const entries = Object.entries(overrides);
     els.overridesList.innerHTML = '';
     els.overridesEmpty.hidden = entries.length > 0;
-    for (const [channelId, o] of entries) {
+    for (const [videoId, o] of entries) {
       const li = document.createElement('li');
-      const label = (o.channelTitle || channelId) + ' — ' + (o.trusted ? '✅ trusted' : o.flagged ? '🚩 flagged' : '');
+      const label = (o.videoTitle || videoId) + ' — ' + (o.trusted ? '✅ trusted' : o.flagged ? '🚩 flagged' : '');
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.textContent = 'Remove';
       removeBtn.addEventListener('click', async () => {
-        await AISlop.storage.setOverride(channelId, null);
+        await AISlop.storage.setOverride(videoId, null);
         renderOverrides();
       });
       const span = document.createElement('span');

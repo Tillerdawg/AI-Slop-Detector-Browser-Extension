@@ -79,12 +79,12 @@
     return stored[C.STORAGE_KEYS.OVERRIDES] || {};
   }
 
-  async function setOverride(channelId, override) {
+  async function setOverride(videoId, override) {
     const overrides = await getOverrides();
     if (!override) {
-      delete overrides[channelId];
+      delete overrides[videoId];
     } else {
-      overrides[channelId] = override; // { trusted: bool, flagged: bool, channelTitle }
+      overrides[videoId] = override; // { trusted: bool, flagged: bool, videoTitle }
     }
     await set({ [C.STORAGE_KEYS.OVERRIDES]: overrides });
     return overrides;

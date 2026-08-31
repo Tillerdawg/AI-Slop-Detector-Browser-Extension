@@ -23,75 +23,15 @@
     );
   }
 
-  function buildBreakdownSection(result) {
-    const section = document.createElement('div');
-    section.className = 'aislop-panel__breakdown';
-
-    const legend = document.createElement('p');
-    legend.className = 'aislop-panel__legend';
-    legend.textContent = C.SCORE_LEGEND.scale;
-    section.appendChild(legend);
-
-    const confidenceLegend = document.createElement('p');
-    confidenceLegend.className = 'aislop-panel__legend';
-    confidenceLegend.textContent =
-      C.SCORE_LEGEND.confidence + ` Gathered ${result.totalWeight}/100 possible evidence weight for this video.`;
-    section.appendChild(confidenceLegend);
-
-    const scoreColumnLegend = document.createElement('p');
-    scoreColumnLegend.className = 'aislop-panel__legend';
-    scoreColumnLegend.textContent =
-      'A numeric Score means that signal was checked (0 = checked, nothing suspicious found). Text in that column means it couldn\'t be checked for this video, and why.';
-    section.appendChild(scoreColumnLegend);
-
-    const table = document.createElement('table');
-    table.className = 'aislop-panel__breakdown-table';
-
-    const headerRow = document.createElement('tr');
-    for (const heading of ['Category', 'Weight', 'Score']) {
-      const th = document.createElement('th');
-      th.textContent = heading;
-      headerRow.appendChild(th);
+  function buildReasonsList(result) {
+    const list = document.createElement('ul');
+    list.className = 'aislop-panel__reasons';
+    for (const reason of result.reasons || []) {
+      const li = document.createElement('li');
+      li.textContent = reason;
+      list.appendChild(li);
     }
-    table.appendChild(headerRow);
-
-    let contributionSum = 0;
-    for (const item of result.breakdown) {
-      const row = document.createElement('tr');
-      const labelCell = document.createElement('td');
-      labelCell.textContent = item.label;
-      const weightCell = document.createElement('td');
-      weightCell.textContent = String(item.maxWeight);
-      const scoreCell = document.createElement('td');
-      if (item.evaluated) {
-        contributionSum += item.contribution;
-        scoreCell.textContent = String(item.contribution);
-      } else {
-        scoreCell.textContent = item.hint || 'not enough data';
-        row.className = 'aislop-panel__breakdown-unevaluated';
-      }
-      row.appendChild(labelCell);
-      row.appendChild(weightCell);
-      row.appendChild(scoreCell);
-      table.appendChild(row);
-    }
-
-    const totalRow = document.createElement('tr');
-    totalRow.className = 'aislop-panel__breakdown-total';
-    const totalLabelCell = document.createElement('td');
-    totalLabelCell.textContent = 'Total (of gathered evidence)';
-    const totalWeightCell = document.createElement('td');
-    totalWeightCell.textContent = String(result.totalWeight);
-    const totalScoreCell = document.createElement('td');
-    totalScoreCell.textContent = String(contributionSum);
-    totalRow.appendChild(totalLabelCell);
-    totalRow.appendChild(totalWeightCell);
-    totalRow.appendChild(totalScoreCell);
-    table.appendChild(totalRow);
-
-    section.appendChild(table);
-
-    return section;
+    return list;
   }
 
   function removePanel() {
@@ -108,6 +48,12 @@
     const mount = findMountPoint();
     if (!mount) return false;
 
+    // Re-renders (e.g. right after clicking a trust/flag/clear-override
+    // button) tear down and rebuild the whole panel -- preserve whether the
+    // "Why?" section was open so that rebuild doesn't visibly collapse it.
+    const existing = document.getElementById(PANEL_ID);
+    const wasExpanded = !!existing && existing.querySelector('.aislop-panel__toggle')?.getAttribute('aria-expanded') === 'true';
+
     removePanel();
     const info = bandInfo(result.band);
 
@@ -121,18 +67,19 @@
     header.innerHTML = `
       <span class="aislop-panel__emoji">${info.emoji}</span>
       <span class="aislop-panel__label">${info.label}</span>
-      <span class="aislop-panel__score">${AISlop.heuristics.formatScore(result.score)}</span>
-      <span class="aislop-panel__confidence">confidence: ${result.confidence}</span>
-      <button type="button" class="aislop-panel__toggle" aria-expanded="false" title="Show details">Why?</button>
+      <button type="button" class="aislop-panel__toggle" aria-expanded="${wasExpanded}" title="Show details">Why?</button>
     `;
 
     const body = document.createElement('div');
     body.className = 'aislop-panel__body';
-    body.hidden = true;
+    body.hidden = !wasExpanded;
 
-    if (result.breakdown && result.breakdown.length > 0) {
-      body.appendChild(buildBreakdownSection(result));
-    }
+    const reasonsIntro = document.createElement('p');
+    reasonsIntro.className = 'aislop-panel__reasons-intro';
+    reasonsIntro.textContent = 'Reasons for this categorization:';
+    body.appendChild(reasonsIntro);
+
+    body.appendChild(buildReasonsList(result));
 
     const actions = document.createElement('div');
     actions.className = 'aislop-panel__actions';
@@ -145,12 +92,12 @@
     } else {
       const trustBtn = document.createElement('button');
       trustBtn.type = 'button';
-      trustBtn.textContent = '✅ Mark channel as human-made';
+      trustBtn.textContent = '✅ Mark video as human-made';
       trustBtn.addEventListener('click', () => handlers.onMarkTrusted && handlers.onMarkTrusted());
 
       const flagBtn = document.createElement('button');
       flagBtn.type = 'button';
-      flagBtn.textContent = '🚩 Mark channel as AI slop';
+      flagBtn.textContent = '🚩 Mark video as AI slop';
       flagBtn.addEventListener('click', () => handlers.onMarkFlagged && handlers.onMarkFlagged());
 
       actions.appendChild(trustBtn);

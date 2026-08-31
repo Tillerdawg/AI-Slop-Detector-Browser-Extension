@@ -67,15 +67,6 @@ html[dark] .aislop-panel {
   font-weight: 600;
 }
 
-.aislop-panel__score {
-  opacity: 0.8;
-}
-
-.aislop-panel__confidence {
-  opacity: 0.6;
-  font-size: 12px;
-}
-
 .aislop-panel__toggle {
   margin-left: auto;
   background: none;
@@ -91,65 +82,19 @@ html[dark] .aislop-panel {
   margin-top: 8px;
 }
 
-.aislop-panel__breakdown {
-  margin: 4px 0 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: rgba(128, 128, 128, 0.12);
-}
-
-.aislop-panel__legend {
-  margin: 0 0 6px;
-  font-size: 11px;
-  opacity: 0.75;
-}
-
-.aislop-panel__breakdown-table {
-  width: 100%;
-  border-collapse: collapse;
+.aislop-panel__reasons-intro {
+  margin: 0 0 4px;
   font-size: 12px;
-}
-
-.aislop-panel__breakdown-table th,
-.aislop-panel__breakdown-table td {
-  padding: 3px 8px 3px 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-}
-
-.aislop-panel__breakdown-table th {
-  text-align: left;
-  font-weight: 600;
   opacity: 0.75;
 }
 
-.aislop-panel__breakdown-table tr:last-child td {
-  border-bottom: none;
+.aislop-panel__reasons {
+  margin: 0 0 16px 18px;
+  padding: 0;
 }
 
-/* Weight column: always a short number, keep it tight and numeric-aligned. */
-.aislop-panel__breakdown-table th:nth-child(2),
-.aislop-panel__breakdown-table td:nth-child(2) {
-  text-align: right;
-  white-space: nowrap;
-  padding-right: 16px;
-}
-
-/* Score column: usually a short number, but can be a wrapping hint sentence
-   ("Needs a YouTube Data API key...") for unevaluated signals. */
-.aislop-panel__breakdown-table th:last-child,
-.aislop-panel__breakdown-table td:last-child {
-  text-align: right;
-}
-
-.aislop-panel__breakdown-unevaluated {
-  opacity: 0.55;
-}
-
-.aislop-panel__breakdown-total td {
-  border-top: 1px solid currentColor;
-  border-bottom: none;
-  padding-top: 5px;
-  font-weight: 600;
+.aislop-panel__reasons li {
+  margin-bottom: 2px;
 }
 
 .aislop-panel__actions {

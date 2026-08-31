@@ -11,7 +11,7 @@
     SETTINGS: 'aislop_settings',
     SCORE_CACHE: 'aislop_score_cache', // per-video score cache
     CHANNEL_CACHE: 'aislop_channel_cache', // per-channel upload-cadence cache
-    OVERRIDES: 'aislop_overrides', // user's manual trust/flag list, keyed by channelId
+    OVERRIDES: 'aislop_overrides', // user's manual trust/flag list, keyed by videoId
     VOTES: 'aislop_votes', // local-only personal votes per videoId (future sync seam)
   };
 
@@ -47,14 +47,6 @@
       { min: 12, id: 'uncertain' },
       { min: 0, id: 'human' },
     ],
-  };
-
-  // Shared copy for the score-breakdown UI (watch panel + popup), so the
-  // explanation reads identically in both places.
-  const SCORE_LEGEND = {
-    scale: 'Score: how AI-like this video looks, from 0 (likely human-made) to 10 (likely AI-generated).',
-    confidence:
-      'Confidence: how much of the evidence below we could actually check for this video (some signals need channel history we may not have) -- not how sure we are about the result.',
   };
 
   const RATING_BANDS = {
@@ -135,7 +127,6 @@
     STORAGE_KEYS,
     DEFAULT_SETTINGS,
     STRICTNESS_BANDS,
-    SCORE_LEGEND,
     RATING_BANDS,
     AI_DISCLOSURE_PHRASES,
     DESCRIPTION_BOILERPLATE_PATTERNS,

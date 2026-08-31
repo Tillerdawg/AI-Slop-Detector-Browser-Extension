@@ -127,19 +127,26 @@ function assert(cond, msg) {
   assert(r.totalWeight === 0, 'overridden result should have totalWeight 0');
 }
 
+// 9b. A clean (evaluated, no AI evidence found) signal explains itself in `reasons`,
+//     directly supporting a human-made verdict, instead of generic filler text.
+{
+  const r = heuristics.scoreVideo({
+    title: 'My trip to the mountains last weekend',
+    description: 'Some personal thoughts about my hiking trip, includes timestamps 0:00 intro 2:30 summit.',
+    lengthSeconds: 600,
+  });
+  const titlePatterns = r.breakdown.find((b) => b.key === 'titlePatterns');
+  assert(titlePatterns.evaluated === true, 'titlePatterns should be evaluated for a video with a title');
+  assert(!titlePatterns.reason, 'titlePatterns should have no AI-evidence reason for a clean title');
+  assert(r.reasons.some((reason) => /clickbait|content-mill/i.test(reason)), 'reasons should include an explicit "no clickbait" explanation (got ' + JSON.stringify(r.reasons) + ')');
+  assert(!r.reasons.includes('No strong AI-content signals detected'), 'reasons should no longer fall back to generic filler when clean signals explain themselves');
+}
+
 // 10b. An unevaluated breakdown entry explains what's missing, not just "not enough data".
 {
   const r = heuristics.scoreVideo({ title: 'A perfectly normal title' });
   const uploadCadence = r.breakdown.find((b) => b.key === 'uploadCadence');
   assert(typeof uploadCadence.hint === 'string' && uploadCadence.hint.length > 0, 'unevaluated entries should carry a hint explaining why (got ' + JSON.stringify(uploadCadence) + ')');
-}
-
-// 11. formatScore() renders the 0-100 internal score as a 0-10 display string, one decimal place.
-{
-  assert(heuristics.formatScore(11) === '1.1/10', 'formatScore(11) should be "1.1/10" (got ' + heuristics.formatScore(11) + ')');
-  assert(heuristics.formatScore(0) === '0.0/10', 'formatScore(0) should be "0.0/10" (got ' + heuristics.formatScore(0) + ')');
-  assert(heuristics.formatScore(100) === '10.0/10', 'formatScore(100) should be "10.0/10" (got ' + heuristics.formatScore(100) + ')');
-  assert(heuristics.formatScore(45) === '4.5/10', 'formatScore(45) should be "4.5/10" (got ' + heuristics.formatScore(45) + ')');
 }
 
 console.log(`\n${passed} passed, ${failed} failed.`);

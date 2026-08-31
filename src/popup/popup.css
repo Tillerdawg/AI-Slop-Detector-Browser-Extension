@@ -30,9 +30,9 @@ body {
   font-weight: 700;
   margin-bottom: 4px;
 }
-.result-meta {
+.reasons-intro {
   color: #666;
-  margin-bottom: 8px;
+  margin: 0 0 4px;
 }
 .result-reasons {
   margin: 0;
@@ -70,7 +70,7 @@ body {
 @media (prefers-color-scheme: dark) {
   body { background: #181818; color: #eee; }
   .header, .quick-settings, .footer { border-color: #333; }
-  .muted, .result-meta { color: #aaa; }
+  .muted, .reasons-intro { color: #aaa; }
   .footer button { background: #2a2a2a; border-color: #444; color: #eee; }
   .footer button:hover { background: #333; }
 }

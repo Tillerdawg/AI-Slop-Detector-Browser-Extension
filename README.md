@@ -59,7 +59,7 @@ PowerShell `Compress-Archive`) — handy for store-upload flows later.
 ## Using it
 
 - **Watch page**: a card appears near the title with the rating, a "Why?"
-  breakdown, and buttons to manually mark that *channel* as trusted or
+  breakdown, and buttons to manually mark that *video* as trusted or
   flagged (your own local override, always wins over the heuristic).
 - **Thumbnails** (home/search/recommended): a small badge appears in the
   corner once scrolled into view; hover it for the breakdown. An instant
@@ -69,7 +69,7 @@ PowerShell `Compress-Archive`) — handy for store-upload flows later.
   quick on/off toggles.
 - **Options page** (right-click icon → Options, or "More settings…" in the
   popup): per-surface toggles, sensitivity (lenient/balanced/strict),
-  optional YouTube Data API key, channel override list, and a cache clearer.
+  optional YouTube Data API key, video override list, and a cache clearer.
 
 ## Project structure
 

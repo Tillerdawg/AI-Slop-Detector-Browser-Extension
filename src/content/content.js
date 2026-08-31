@@ -66,8 +66,8 @@
     lastSignals = signals;
     if (settings.showOnWatchPage) {
       AISlop.panel.renderWatchPanel(result, {
-        onMarkTrusted: () => applyOverride(signals, { trusted: true, channelTitle: signals.channelTitle }),
-        onMarkFlagged: () => applyOverride(signals, { flagged: true, channelTitle: signals.channelTitle }),
+        onMarkTrusted: () => applyOverride(signals, { trusted: true, videoTitle: signals.title }),
+        onMarkFlagged: () => applyOverride(signals, { flagged: true, videoTitle: signals.title }),
         onClearOverride: () => applyOverride(signals, null),
       });
     } else {
@@ -76,10 +76,10 @@
   }
 
   async function applyOverride(signals, override) {
-    if (!signals.channelId) return;
+    if (!signals.videoId) return;
     await api.runtime.sendMessage({
       type: C.MESSAGE_TYPES.SET_OVERRIDE,
-      channelId: signals.channelId,
+      videoId: signals.videoId,
       override,
     });
     await refreshWatchPanel(true);

@@ -88,7 +88,7 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
 
   async function computeFullScore(signals, settings) {
     const overrides = await AISlop.storage.getOverrides();
-    const override = signals.channelId ? overrides[signals.channelId] : null;
+    const override = signals.videoId ? overrides[signals.videoId] : null;
     let channelData = null;
     if (settings.useChannelCadence && signals.channelId && !(override && override.trusted) && !(override && override.flagged)) {
       channelData = await getChannelData(signals.channelId, settings.youtubeApiKey);
@@ -122,7 +122,7 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
       }
 
       case M.SET_OVERRIDE: {
-        const overrides = await AISlop.storage.setOverride(message.channelId, message.override);
+        const overrides = await AISlop.storage.setOverride(message.videoId, message.override);
         return { ok: true, overrides };
       }
 
