@@ -50,10 +50,10 @@
   };
 
   const RATING_BANDS = {
-    ai_generated: { label: 'Likely AI-Generated', emoji: '\u{1F6D1}', color: '#e0483d', short: 'AI' },
-    ai_assisted: { label: 'Likely AI-Assisted', emoji: '\u{26A0}\u{FE0F}', color: '#e0913d', short: 'AI?' },
-    uncertain: { label: 'Mixed / Uncertain', emoji: '\u{2753}', color: '#d9c23c', short: '?' },
-    human: { label: 'Likely Human-Made', emoji: '\u{2705}', color: '#3da35d', short: 'OK' },
+    ai_generated: { label: 'Likely AI-Generated', emoji: '\u{1F6D1}', color: '#e0483d', short: 'AI-Generated' },
+    ai_assisted: { label: 'Likely AI-Assisted', emoji: '\u{26A0}\u{FE0F}', color: '#e0913d', short: 'AI-Assisted' },
+    uncertain: { label: 'Mixed / Uncertain', emoji: '\u{2753}', color: '#d9c23c', short: 'Uncertain' },
+    human: { label: 'Likely Human-Made', emoji: '\u{2705}', color: '#3da35d', short: 'Human-Made' },
   };
 
   // Substrings we look for (case-insensitive) inside the raw YouTube page
