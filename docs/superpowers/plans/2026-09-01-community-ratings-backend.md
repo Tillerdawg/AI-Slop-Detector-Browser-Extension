@@ -595,9 +595,10 @@ this branch (right after the existing `/score/` branch):
     }
 ```
 
-Also update the `OPTIONS` preflight response's `access-control-allow-methods`
-to include `PUT`... actually no PUT is used; leave `GET, POST, OPTIONS` as
-is for now (DELETE gets added in Task 5).
+No `OPTIONS` preflight header changes are needed in this task — `/verify`
+only sends the already-allowed `content-type` header. (Task 4 updates the
+`OPTIONS` response for the new `x-vote-token`/`x-admin-token` headers and
+the `DELETE` method.)
 
 - [ ] **Step 4: Run test to verify it passes**
 
