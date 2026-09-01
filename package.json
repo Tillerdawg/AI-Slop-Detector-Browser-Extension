@@ -2,6 +2,7 @@
   "name": "ai-slop-detector",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Browser extension that rates YouTube videos for likely AI-generated content.",
   "scripts": {
     "icons": "node build/run-python.js icons/generate_icons.py",

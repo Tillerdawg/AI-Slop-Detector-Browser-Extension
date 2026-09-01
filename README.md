@@ -158,3 +158,7 @@ layer where people can vote on videos, SponsorBlock-style, aggregated and
 shown alongside the local heuristic result. Nothing here is deployed or
 wired into the extension yet. See `backend/README.md` for what exists and
 what's left to build.
+
+## License
+
+[MIT](LICENSE)
