@@ -130,6 +130,10 @@ this extension makes:
   cadence, throttled and cached for 24 hours per channel.
 - `GET https://www.googleapis.com/youtube/v3/...`, and only if you've
   pasted your own API key into Settings.
+- If you've configured a community-ratings backend URL in Settings:
+  `GET <your backend URL>/score/:videoId`, `POST <your backend URL>/vote`,
+  and `POST <your backend URL>/verify` — all opt-in, off by default, and
+  only ever sent to the URL you typed in yourself.
 
 ## Known limitations (the honest version)
 
@@ -151,13 +155,21 @@ defensively, with multiple candidate matches and a graceful fallback to
 At the end of the day, this is a heuristic aid for your own judgment, not a
 fact-checker.
 
-## Roadmap: community ratings
+## Community ratings
 
-`backend/` holds a scaffold (Cloudflare Worker + D1) for an optional future
-layer where people can vote on videos, SponsorBlock-style, aggregated and
-shown alongside the local heuristic result. Nothing here is deployed or
-wired into the extension yet. See `backend/README.md` for what exists and
-what's left to build.
+Optional and off by default. Point Settings → Community ratings at a
+deployed backend (see `backend/README.md`) and a Cloudflare Turnstile
+site key to enable SponsorBlock-style voting: verify you're human once
+(good for ~30 days), then vote 👍 human / 🤖 AI on individual videos from
+the watch-page panel. Community votes blend into the shown score,
+weighted by vote count, and are shown alongside the local heuristic's own
+reasons -- never replacing your own manual trust/flag override.
+
+Note for Firefox users: the human-verification step's sandboxed Turnstile
+widget was built and tested primarily against Chrome; if it doesn't load
+in Firefox, that's a known limitation (Firefox's MV3 sandbox-page support
+differs from Chrome's) -- the rest of the extension, including local
+heuristics, is unaffected.
 
 ## License
 
