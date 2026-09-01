@@ -26,12 +26,13 @@ def draw_icon(size):
     pad = int(s * 0.04)
     d.ellipse([pad, pad, s - pad, s - pad], fill=BG)
 
-    # Play triangle, slightly left/up of center
+    # Play triangle, slightly left/up of center -- flat edge vertical on the
+    # left, apex pointing right (the standard "play" orientation).
     cx, cy = s * 0.46, s * 0.46
     tri_r = s * 0.22
     import math
     pts = []
-    for angle in (-30, 90, 210):
+    for angle in (-120, 0, 120):
         rad = math.radians(angle)
         pts.append((cx + tri_r * math.cos(rad), cy + tri_r * math.sin(rad)))
     d.polygon(pts, fill=PLAY)
