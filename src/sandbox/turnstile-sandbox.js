@@ -15,14 +15,25 @@
     window.parent.postMessage(Object.assign({ source: 'aislop-turnstile' }, data), '*');
   }
 
-  function render() {
+  // The remote Turnstile script may never load (blocked remote script, CDN
+  // down, or a browser whose extension-page CSP forbids it -- e.g. Firefox,
+  // which has no Chrome-style sandboxed pages). Give up loudly instead of
+  // polling forever with no diagnostics.
+  const MAX_LOAD_ATTEMPTS = 50; // ~10s at 200ms/attempt
+
+  function render(attempt) {
+    attempt = attempt || 0;
     const siteKey = getSiteKey();
     if (!siteKey) {
       post({ error: 'missing_sitekey' });
       return;
     }
     if (typeof window.turnstile === 'undefined') {
-      setTimeout(render, 200);
+      if (attempt >= MAX_LOAD_ATTEMPTS) {
+        post({ error: 'turnstile_load_failed' });
+        return;
+      }
+      setTimeout(() => render(attempt + 1), 200);
       return;
     }
     window.turnstile.render('#turnstile-widget', {

@@ -134,6 +134,11 @@
     if (!event.data || event.data.source !== 'aislop-turnstile') return;
     if (event.source !== els.turnstileFrame.contentWindow) return;
     if (event.data.error) {
+      // Reset the frame as the success path does: without this a retry click
+      // reassigns the same src to an already-loaded frame, which browsers may
+      // not reliably re-render.
+      els.turnstileFrame.hidden = true;
+      els.turnstileFrame.src = 'about:blank';
       els.verifyStatus.textContent = '❌ Verification failed, try again';
       return;
     }
