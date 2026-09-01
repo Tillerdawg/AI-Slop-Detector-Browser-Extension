@@ -101,8 +101,13 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
     return data;
   }
 
-  async function finalizeScorePayload(payload, videoId, settings) {
-    if (!settings.communityApiUrl) return payload;
+  /**
+   * Layers community votes onto a heuristic payload. `includeCommunity` is
+   * opt-in per request: only the watch page asks for it, so scrolling a feed
+   * of thumbnails never sends video IDs to the community backend.
+   */
+  async function finalizeScorePayload(payload, videoId, settings, includeCommunity) {
+    if (!settings.communityApiUrl || !includeCommunity) return payload;
     const community = await getCommunityScore(videoId, settings.communityApiUrl);
     const blended = AISlop.heuristics.blendCommunityScore(payload, community, { strictness: settings.strictness });
     const voteToken = await AISlop.storage.getVoteToken();
@@ -130,9 +135,10 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
       case M.GET_SCORE: {
         const settings = await AISlop.storage.getSettings();
         if (!settings.enabled) return { disabled: true };
+        const includeCommunity = !!message.includeCommunity;
         if (!message.forceRefresh) {
           const cached = await AISlop.storage.getScoreCacheEntry(message.videoId);
-          if (cached) return finalizeScorePayload(cached, message.videoId, settings);
+          if (cached) return finalizeScorePayload(cached, message.videoId, settings, includeCommunity);
         }
         const result = await computeFullScore(message.signals || {}, settings);
         const payload = Object.assign({}, result, {
@@ -143,7 +149,7 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
           computedAt: Date.now(),
         });
         await AISlop.storage.setScoreCacheEntry(message.videoId, payload);
-        return finalizeScorePayload(payload, message.videoId, settings);
+        return finalizeScorePayload(payload, message.videoId, settings, includeCommunity);
       }
 
       case M.SET_OVERRIDE: {

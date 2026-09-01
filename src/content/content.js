@@ -51,6 +51,8 @@
         videoId: signals.videoId,
         signals,
         forceRefresh: !!forceRefresh,
+        // Watch-page only: thumbnails must never trigger a community lookup.
+        includeCommunity: true,
       });
     } catch (e) {
       return;
