@@ -378,10 +378,17 @@ test('GET /score/:videoId suppresses vote data for a blocklisted video', async (
 - [ ] **Step 4: Run test to verify it fails**
 
 Run: `cd backend && npm test`
-Expected: first two tests PASS (harness works against the existing,
-already-implemented `/score` endpoint); the third FAILS — `blocklist`
-table doesn't exist yet, so `db.prepare('INSERT INTO blocklist ...')`
-throws.
+Expected: the first test ("returns zero counts for a video with no
+votes") FAILS — it asserts the whole response object with
+`assert.deepEqual`, including a `blocked: false` field that
+`handleGetScore` doesn't return yet. The second test ("aggregates votes")
+PASSES — it only checks individual fields with `assert.equal` and never
+asserts on `blocked`, so it's unaffected by that field's absence. The
+third test ("suppresses vote data for a blocklisted video") FAILS —
+`blocklist` table doesn't exist yet, so
+`db.prepare('INSERT INTO blocklist ...')` throws `D1_ERROR: no such
+table: blocklist`. Net: 1 pass, 2 fail — both failures are expected and
+both get fixed by Step 5-6 below.
 
 - [ ] **Step 5: Add the blocklist table**
 
