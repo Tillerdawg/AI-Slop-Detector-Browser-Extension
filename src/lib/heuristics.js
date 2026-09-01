@@ -345,5 +345,46 @@
     return scoreVideo({ title }, opts);
   }
 
-  AISlop.heuristics = { scoreVideo, quickScoreFromTitle, median, daysBetween };
+  /**
+   * Blends a video's heuristic score with its community vote counts.
+   * Pure -- no network access, consistent with the rest of this file.
+   * @param {object} result scoreVideo() output
+   * @param {{aiVotes:number, humanVotes:number, total:number, communityScore:number|null}|null} community
+   * @param {object} [opts]
+   * @param {string} [opts.strictness]
+   * @returns {object} a new result object; does not mutate `result`
+   */
+  function blendCommunityScore(result, community, opts) {
+    if (!result || result.overridden) return result;
+    if (!community || !community.total) return result;
+    opts = opts || {};
+
+    const weight = Math.min(0.5, community.total / 10);
+    const blendedScore = Math.round(result.score * (1 - weight) + community.communityScore * weight);
+
+    const strictness = opts.strictness || 'balanced';
+    const bands = (C.STRICTNESS_BANDS && C.STRICTNESS_BANDS[strictness]) || C.STRICTNESS_BANDS.balanced;
+    let band = 'human';
+    for (const b of bands) {
+      if (blendedScore >= b.min) {
+        band = b.id;
+        break;
+      }
+    }
+
+    const communityVotes = { ai: community.aiVotes || 0, human: community.humanVotes || 0, total: community.total };
+    const reasons = result.reasons.concat([
+      `Community: ${communityVotes.human} of ${communityVotes.total} votes say human-made, ${communityVotes.ai} say AI-generated`,
+    ]);
+
+    return Object.assign({}, result, {
+      score: blendedScore,
+      band,
+      reasons,
+      communityVotes,
+      communityBlendWeight: weight,
+    });
+  }
+
+  AISlop.heuristics = { scoreVideo, quickScoreFromTitle, blendCommunityScore, median, daysBetween };
 })(typeof self !== 'undefined' ? self : this);

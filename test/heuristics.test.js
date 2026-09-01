@@ -149,5 +149,45 @@ function assert(cond, msg) {
   assert(typeof uploadCadence.hint === 'string' && uploadCadence.hint.length > 0, 'unevaluated entries should carry a hint explaining why (got ' + JSON.stringify(uploadCadence) + ')');
 }
 
+// 11. blendCommunityScore: no community data is a no-op.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' });
+  const blended = heuristics.blendCommunityScore(base, null);
+  assert(blended.score === base.score, 'blendCommunityScore(result, null) should not change the score');
+  assert(blended.communityVotes === undefined, 'no communityVotes field when there is no community data');
+}
+
+// 12. blendCommunityScore: zero total votes is a no-op.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' });
+  const blended = heuristics.blendCommunityScore(base, { aiVotes: 0, humanVotes: 0, total: 0, communityScore: null });
+  assert(blended.score === base.score, 'zero votes should not change the score');
+}
+
+// 13. blendCommunityScore: a manual override always bypasses blending.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' }, { override: { trusted: true } });
+  const blended = heuristics.blendCommunityScore(base, { aiVotes: 20, humanVotes: 0, total: 20, communityScore: 100 });
+  assert(blended.score === 0 && blended.band === 'human', 'a manual override must not be perturbed by community votes');
+}
+
+// 14. blendCommunityScore: weight ramps with vote count and caps at 0.5.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' }); // score 0, no signals fired
+  const fewVotes = heuristics.blendCommunityScore(base, { aiVotes: 1, humanVotes: 0, total: 1, communityScore: 100 });
+  const manyVotes = heuristics.blendCommunityScore(base, { aiVotes: 20, humanVotes: 0, total: 20, communityScore: 100 });
+  assert(fewVotes.communityBlendWeight < manyVotes.communityBlendWeight, 'more votes should mean more blend weight');
+  assert(manyVotes.communityBlendWeight === 0.5, 'blend weight caps at 0.5 regardless of vote count');
+  assert(fewVotes.score < manyVotes.score, 'more AI votes at higher weight should pull the score up further');
+}
+
+// 15. blendCommunityScore: exposes raw counts and a human-readable reason.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' });
+  const blended = heuristics.blendCommunityScore(base, { aiVotes: 3, humanVotes: 7, total: 10, communityScore: 30 });
+  assert(blended.communityVotes.ai === 3 && blended.communityVotes.human === 7 && blended.communityVotes.total === 10, 'raw vote counts should be exposed');
+  assert(blended.reasons.some((r) => r.includes('Community')), 'a community-vote reason should be appended');
+}
+
 console.log(`\n${passed} passed, ${failed} failed.`);
 process.exit(failed ? 1 : 0);
