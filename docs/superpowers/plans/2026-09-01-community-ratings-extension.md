@@ -794,7 +794,7 @@ Add the verify flow at the end of the file, before the final
       els.verifyStatus.textContent = 'Set a Turnstile site key above first.';
       return;
     }
-    els.turnstileFrame.src = 'sandbox/turnstile-sandbox.html?sitekey=' + encodeURIComponent(siteKey);
+    els.turnstileFrame.src = '../sandbox/turnstile-sandbox.html?sitekey=' + encodeURIComponent(siteKey);
     els.turnstileFrame.hidden = false;
   });
 
