@@ -156,6 +156,14 @@ async function handlePostVote(request, env) {
     return json({ error: 'videoId, clientId, and vote ("ai"|"human") are required' }, 400);
   }
 
+  const voteToken = request.headers.get('x-vote-token');
+  const validToken = await verifyVoteToken(voteToken, clientId, env.VOTE_TOKEN_SECRET || '');
+  if (!validToken) return json({ error: 'not verified' }, 401);
+
+  if (await isBlocklisted(env, videoId)) {
+    return json({ error: 'video is blocklisted' }, 403);
+  }
+
   try {
     await env.DB.prepare(
       `INSERT INTO votes (video_id, channel_id, vote, client_id, created_at) VALUES (?, ?, ?, ?, ?)
@@ -208,8 +216,8 @@ export default {
       return new Response(null, {
         headers: {
           'access-control-allow-origin': '*',
-          'access-control-allow-methods': 'GET, POST, OPTIONS',
-          'access-control-allow-headers': 'content-type',
+          'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+          'access-control-allow-headers': 'content-type, x-vote-token, x-admin-token',
         },
       });
     }
