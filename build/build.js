@@ -74,6 +74,16 @@ function baseManifest() {
         run_at: 'document_end',
       },
     ],
+    // Community-ratings opt-in: Turnstile verification runs in a sandboxed
+    // page (MV3 forbids remote script in normal extension pages), and the
+    // user-pasted backend URL gets its own origin permission requested at
+    // save-time via chrome.permissions.request() rather than a static grant.
+    sandbox: { pages: ['sandbox/turnstile-sandbox.html'] },
+    content_security_policy: {
+      sandbox:
+        "sandbox allow-scripts allow-popups; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; child-src https://challenges.cloudflare.com;",
+    },
+    optional_host_permissions: ['https://*/*'],
   };
 }
 
