@@ -1,11 +1,14 @@
 /**
- * Scaffold Cloudflare Worker for the future community-ratings layer.
- * NOT wired into the extension yet -- see backend/README.md for the plan.
+ * Cloudflare Worker for the community-ratings layer -- see backend/README.md.
  *
  * Endpoints:
- *   GET  /score/:videoId          -> aggregated vote counts for a video
- *   POST /vote {videoId, channelId, vote, clientId}
- *                                  -> record one anonymous vote
+ *   GET    /score/:videoId              -> aggregated vote counts for a video
+ *   POST   /vote {videoId, channelId, vote, clientId}
+ *                                        -> record one anonymous vote
+ *   POST   /admin/blocklist {videoId, reason}, header x-admin-token
+ *                                        -> suppress a video's community score
+ *   DELETE /admin/blocklist/:videoId, header x-admin-token
+ *                                        -> un-suppress a video
  *
  * Deliberately minimal: no auth, no accounts, no human-verification step.
  * Abuse resistance is limited to (a) one vote per (videoId, clientId) via a

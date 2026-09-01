@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeTestWorker } from './testWorker.js';
 
-async function postVote(mf, body) {
+async function postVote(mf, body, extraHeaders) {
   return mf.dispatchFetch('http://localhost/vote', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: Object.assign({ 'content-type': 'application/json' }, extraHeaders || {}),
     body: JSON.stringify(body),
   });
 }
@@ -62,11 +62,24 @@ test('POST /vote consumes per-IP-hash rate-limit budget', async () => {
   // things standing between the endpoint and casual vote-stuffing, so
   // assert it actually counts.
   const { mf, db } = await makeTestWorker();
+  const ipHeaders = { 'cf-connecting-ip': '203.0.113.1' };
   for (let i = 0; i < 3; i++) {
-    const res = await postVote(mf, { videoId: 'vid-1', vote: 'ai', clientId: `client-${i}` });
+    const res = await postVote(mf, { videoId: 'vid-1', vote: 'ai', clientId: `client-${i}` }, ipHeaders);
     assert.equal(res.status, 200);
   }
   const row = await db.prepare('SELECT SUM(count) AS n FROM rate_limit').first();
   assert.equal(row.n, 3);
+  await mf.dispose();
+});
+
+test('POST /vote rejects with 429 once the per-minute rate limit is exceeded', async () => {
+  const { mf } = await makeTestWorker();
+  const ipHeaders = { 'cf-connecting-ip': '203.0.113.2' };
+  for (let i = 0; i < 20; i++) {
+    const res = await postVote(mf, { videoId: 'vid-1', vote: 'ai', clientId: `client-${i}` }, ipHeaders);
+    assert.equal(res.status, 200, `expected 200 on request ${i + 1}`);
+  }
+  const limited = await postVote(mf, { videoId: 'vid-1', vote: 'ai', clientId: 'client-21' }, ipHeaders);
+  assert.equal(limited.status, 429);
   await mf.dispose();
 });
