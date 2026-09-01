@@ -108,7 +108,15 @@ async function checkRateLimit(env, ip) {
   return true;
 }
 
+async function isBlocklisted(env, videoId) {
+  const row = await env.DB.prepare('SELECT video_id FROM blocklist WHERE video_id = ?').bind(videoId).first();
+  return !!row;
+}
+
 async function handleGetScore(env, videoId) {
+  if (await isBlocklisted(env, videoId)) {
+    return json({ videoId, blocked: true, aiVotes: 0, humanVotes: 0, total: 0, communityScore: null });
+  }
   const row = await env.DB.prepare(
     `SELECT
        SUM(CASE WHEN vote = 'ai' THEN 1 ELSE 0 END) AS ai_votes,
@@ -122,6 +130,7 @@ async function handleGetScore(env, videoId) {
   const total = aiVotes + humanVotes;
   return json({
     videoId,
+    blocked: false,
     aiVotes,
     humanVotes,
     total,

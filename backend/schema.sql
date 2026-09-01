@@ -21,3 +21,11 @@ CREATE TABLE IF NOT EXISTS rate_limit (
   count        INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (ip_hash, window_start)
 );
+
+-- Operator-maintained list of videos whose community score is suppressed
+-- (e.g. after a brigading incident). Checked by GET /score and POST /vote.
+CREATE TABLE IF NOT EXISTS blocklist (
+  video_id   TEXT PRIMARY KEY,
+  reason     TEXT,
+  created_at INTEGER NOT NULL
+);
