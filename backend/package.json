@@ -6,7 +6,7 @@
     "test": "node --test test/*.test.js"
   },
   "devDependencies": {
-    "miniflare": "^3.20250718.3"
+    "miniflare": "3.20250718.3"
   },
   "allowScripts": {
     "workerd@1.20250718.0": true
