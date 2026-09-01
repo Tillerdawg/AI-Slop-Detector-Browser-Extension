@@ -7,19 +7,15 @@
  *   POST /vote {videoId, channelId, vote, clientId}
  *                                  -> record one anonymous vote
  *
- * Deliberately minimal: no auth, no accounts. Abuse resistance is limited to
- * (a) one vote per (videoId, clientId) via a DB primary key, and (b) a crude
- * per-IP-hash rate limit. A real deployment should add at least CAPTCHA-free
- * bot filtering (e.g. Cloudflare Turnstile) before taking this beyond a
- * personal/small-community scale.
+ * Deliberately minimal: no auth, no accounts, no human-verification step.
+ * Abuse resistance is limited to (a) one vote per (videoId, clientId) via a
+ * DB primary key, and (b) a crude per-IP-hash rate limit, with the blocklist
+ * as the moderation backstop. That's appropriate for a personal /
+ * small-community scale, not for an adversarial one.
  */
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 20;
-
-const VOTE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 // --- input validation ------------------------------------------------------
 // Client-supplied identifiers are stored verbatim, so bound them here rather
@@ -55,63 +51,11 @@ function safeDecode(str) {
   }
 }
 
-// --- base64url + HMAC vote-token helpers -----------------------------------
-
-function base64UrlEncode(bytes) {
-  let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64UrlDecode(str) {
-  str = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) str += '=';
-  const binary = atob(str);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
 function timingSafeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
-}
-
-async function hmacSign(payload, secret) {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
-  return base64UrlEncode(new Uint8Array(sig));
-}
-
-async function mintVoteToken(clientId, secret) {
-  const exp = Date.now() + VOTE_TOKEN_TTL_MS;
-  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ clientId, exp })));
-  const sig = await hmacSign(payload, secret);
-  return { token: `${payload}.${sig}`, expiresAt: exp };
-}
-
-async function verifyVoteToken(token, clientId, secret) {
-  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
-  const [payload, sig] = token.split('.');
-  const expectedSig = await hmacSign(payload, secret);
-  if (!timingSafeEqual(sig, expectedSig)) return false;
-  let parsed;
-  try {
-    parsed = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload)));
-  } catch (e) {
-    return false;
-  }
-  if (!parsed || typeof clientId !== 'string' || parsed.clientId !== clientId) return false;
-  if (typeof parsed.exp !== 'number' || parsed.exp < Date.now()) return false;
-  return true;
 }
 
 function json(data, status = 200) {
@@ -175,9 +119,9 @@ async function handleGetScore(env, videoId) {
 }
 
 async function handlePostVote(request, env) {
-  if (typeof env.VOTE_TOKEN_SECRET !== 'string' || env.VOTE_TOKEN_SECRET.length === 0) {
-    return json({ error: 'server misconfigured' }, 500);
-  }
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const allowed = await checkRateLimit(env, ip);
+  if (!allowed) return json({ error: 'rate limited' }, 429);
 
   let body;
   try {
@@ -193,19 +137,9 @@ async function handlePostVote(request, env) {
     return json({ error: `channelId must be at most ${MAX_CHANNEL_ID_LENGTH} characters` }, 400);
   }
 
-  // Verify the token before touching D1: verification is pure CPU, so
-  // unauthenticated traffic never consumes rate-limit budget or writes rows.
-  const voteToken = request.headers.get('x-vote-token');
-  const validToken = await verifyVoteToken(voteToken, clientId, env.VOTE_TOKEN_SECRET);
-  if (!validToken) return json({ error: 'not verified' }, 401);
-
   if (await isBlocklisted(env, videoId)) {
     return json({ error: 'video is blocklisted' }, 403);
   }
-
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const allowed = await checkRateLimit(env, ip);
-  if (!allowed) return json({ error: 'rate limited' }, 429);
 
   try {
     await env.DB.prepare(
@@ -218,49 +152,6 @@ async function handlePostVote(request, env) {
     return json({ error: 'write failed' }, 500);
   }
   return handleGetScore(env, videoId);
-}
-
-async function handleVerify(request, env) {
-  if (typeof env.VOTE_TOKEN_SECRET !== 'string' || env.VOTE_TOKEN_SECRET.length === 0) {
-    return json({ error: 'server misconfigured' }, 500);
-  }
-
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const allowed = await checkRateLimit(env, ip);
-  if (!allowed) return json({ error: 'rate limited' }, 429);
-
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return json({ error: 'invalid json' }, 400);
-  }
-  const { turnstileToken, clientId } = body || {};
-  if (!turnstileToken || !isValidClientId(clientId)) {
-    return json({ error: 'turnstileToken and clientId are required' }, 400);
-  }
-
-  const verifyUrl = env.TURNSTILE_VERIFY_URL || TURNSTILE_VERIFY_URL;
-  let verifyResult;
-  try {
-    const resp = await fetch(verifyUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: turnstileToken }),
-    });
-    // A non-2xx from siteverify means Turnstile itself failed, not the user --
-    // don't mislead them with a "you failed the CAPTCHA" 403.
-    if (!resp.ok) return json({ error: 'turnstile verification unreachable' }, 502);
-    verifyResult = await resp.json();
-  } catch (e) {
-    return json({ error: 'turnstile verification unreachable' }, 502);
-  }
-  if (!verifyResult || !verifyResult.success) {
-    return json({ error: 'turnstile verification failed' }, 403);
-  }
-
-  const { token, expiresAt } = await mintVoteToken(clientId, env.VOTE_TOKEN_SECRET);
-  return json({ voteToken: token, expiresAt });
 }
 
 function checkAdmin(request, env) {
@@ -307,15 +198,12 @@ async function route(request, env) {
       headers: {
         'access-control-allow-origin': '*',
         'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
-        'access-control-allow-headers': 'content-type, x-vote-token, x-admin-token',
+        'access-control-allow-headers': 'content-type, x-admin-token',
       },
     });
   }
   if (request.method === 'GET' && url.pathname.startsWith('/score/')) {
     return handleGetScore(env, safeDecode(url.pathname.slice('/score/'.length)));
-  }
-  if (request.method === 'POST' && url.pathname === '/verify') {
-    return handleVerify(request, env);
   }
   if (request.method === 'POST' && url.pathname === '/admin/blocklist') {
     return handleAddBlocklist(request, env);
@@ -343,4 +231,4 @@ export default {
   },
 };
 
-export { base64UrlEncode, base64UrlDecode, hmacSign, mintVoteToken, verifyVoteToken, timingSafeEqual };
+export { timingSafeEqual };

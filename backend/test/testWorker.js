@@ -9,8 +9,6 @@ const SCHEMA_PATH = path.join(ROOT, '..', 'schema.sql');
 
 const DEFAULT_BINDINGS = {
   IP_SALT: 'test-ip-salt',
-  TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
-  VOTE_TOKEN_SECRET: 'test-vote-token-secret',
   ADMIN_TOKEN: 'test-admin-token',
 };
 
