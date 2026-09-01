@@ -1,6 +1,4 @@
-# Scaffold for the future community-ratings backend (see backend/README.md).
-# Not deployed by this repo -- fill in your own account details and run
-# `wrangler deploy` yourself when/if you decide to turn this on.
+# Community-ratings backend (see backend/README.md).
 
 name = "ai-slop-detector-api"
 main = "src/index.js"
@@ -9,7 +7,7 @@ compatibility_date = "2025-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "ai-slop-detector"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "e718a0c1-28b4-416d-9373-2c730a239e47"
 
 # Cloudflare's free tier (as of writing): 100k requests/day on Workers,
 # 5GB storage + 5M rows read/day on D1 -- comfortably enough for this.
