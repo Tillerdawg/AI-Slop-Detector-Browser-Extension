@@ -154,13 +154,6 @@
       voteRow.appendChild(voteAiBtn);
       communityBox.appendChild(voteRow);
 
-      if (result.communityVerified === false) {
-        const verifyNote = document.createElement('p');
-        verifyNote.className = 'aislop-panel__community-note';
-        verifyNote.textContent = "Verify you're human in Settings to vote.";
-        communityBox.appendChild(verifyNote);
-      }
-
       if (result.voteError) {
         const voteErrorP = document.createElement('p');
         voteErrorP.className = 'aislop-panel__community-note';

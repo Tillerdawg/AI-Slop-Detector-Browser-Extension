@@ -74,15 +74,9 @@ function baseManifest() {
         run_at: 'document_end',
       },
     ],
-    // Community-ratings opt-in: Turnstile verification runs in a sandboxed
-    // page (MV3 forbids remote script in normal extension pages), and the
-    // user-pasted backend URL gets its own origin permission requested at
-    // save-time via chrome.permissions.request() rather than a static grant.
-    sandbox: { pages: ['sandbox/turnstile-sandbox.html'] },
-    content_security_policy: {
-      sandbox:
-        "sandbox allow-scripts allow-popups; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; child-src https://challenges.cloudflare.com;",
-    },
+    // Community-ratings opt-in: the user-pasted backend URL gets its own
+    // origin permission requested at save-time via
+    // chrome.permissions.request() rather than a static grant.
     optional_host_permissions: ['https://*/*'],
   };
 }
@@ -96,14 +90,6 @@ function chromeManifest() {
 
 function firefoxManifest() {
   const m = baseManifest();
-  // Firefox's MV3 has no Chrome-style sandboxed extension pages, and these
-  // keys risk AMO linter warnings for unsupported manifest fields. Dropping
-  // them changes nothing functionally: the Turnstile human-verification flow
-  // already can't work on Firefox (its extension-page CSP blocks the same
-  // remote script Chrome's sandbox exists to permit) -- a pre-existing,
-  // documented known limitation, not a regression introduced here.
-  delete m.sandbox;
-  delete m.content_security_policy;
   m.background = { scripts: [...BACKGROUND_LIB_JS, 'background/background.js'] };
   m.browser_specific_settings = {
     gecko: {

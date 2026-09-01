@@ -93,7 +93,6 @@
   }
 
   function communityVoteErrorMessage(error) {
-    if (error === 'not_verified') return "Verify you're human in Settings to vote.";
     if (error === 'network_error') return "Couldn't reach the community backend — try again in a moment.";
     return "Couldn't record your vote — try again in a moment.";
   }
@@ -111,7 +110,7 @@
     } catch (e) {
       result = null; // falls through to the generic error message below
     }
-    // Without this, every failure (unverified, rate-limited, backend down)
+    // Without this, every failure (rate-limited, blocklisted, backend down)
     // looks identical to the user: nothing visibly happens. Re-render the
     // panel we already have with an inline explanation instead. The message
     // clears itself on the next GET_SCORE, whose fresh result carries no

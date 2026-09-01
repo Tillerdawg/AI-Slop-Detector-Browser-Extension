@@ -91,15 +91,6 @@
     return overrides;
   }
 
-  async function getVoteToken() {
-    const stored = await get(C.STORAGE_KEYS.VOTE_TOKEN);
-    return stored[C.STORAGE_KEYS.VOTE_TOKEN] || null;
-  }
-
-  async function setVoteToken(voteToken) {
-    await set({ [C.STORAGE_KEYS.VOTE_TOKEN]: voteToken });
-  }
-
   async function getClientId() {
     const stored = await get(C.STORAGE_KEYS.CLIENT_ID);
     let clientId = stored[C.STORAGE_KEYS.CLIENT_ID];
@@ -171,8 +162,6 @@
     setChannelCacheEntry,
     getOverrides,
     setOverride,
-    getVoteToken,
-    setVoteToken,
     getClientId,
     getVotes,
     setMyVote,

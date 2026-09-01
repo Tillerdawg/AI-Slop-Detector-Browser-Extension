@@ -110,10 +110,8 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
     if (!settings.communityApiUrl || !includeCommunity) return payload;
     const community = await getCommunityScore(videoId, settings.communityApiUrl);
     const blended = AISlop.heuristics.blendCommunityScore(payload, community, { strictness: settings.strictness });
-    const voteToken = await AISlop.storage.getVoteToken();
-    const communityVerified = !!(voteToken && voteToken.expiresAt > Date.now());
     const myVote = (await AISlop.storage.getVotes())[videoId] || null;
-    return Object.assign({}, blended, { communityVerified, myVote });
+    return Object.assign({}, blended, { myVote });
   }
 
   async function computeFullScore(signals, settings) {
@@ -160,14 +158,12 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
       case M.SET_COMMUNITY_VOTE: {
         const settings = await AISlop.storage.getSettings();
         if (!settings.communityApiUrl) return { error: 'community_disabled' };
-        const voteToken = await AISlop.storage.getVoteToken();
-        if (!voteToken || voteToken.expiresAt <= Date.now()) return { error: 'not_verified' };
         const clientId = await AISlop.storage.getClientId();
         let res;
         try {
           res = await fetch(settings.communityApiUrl.replace(/\/$/, '') + '/vote', {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-vote-token': voteToken.token },
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
               videoId: message.videoId,
               channelId: message.channelId,
@@ -182,26 +178,6 @@ if (typeof window === 'undefined' && typeof importScripts === 'function') {
         await AISlop.storage.setMyVote(message.videoId, message.vote);
         await AISlop.storage.clearCommunityCacheEntry(message.videoId);
         return { ok: true };
-      }
-
-      case M.VERIFY_TURNSTILE: {
-        const settings = await AISlop.storage.getSettings();
-        if (!settings.communityApiUrl) return { error: 'community_disabled' };
-        const clientId = await AISlop.storage.getClientId();
-        let res;
-        try {
-          res = await fetch(settings.communityApiUrl.replace(/\/$/, '') + '/verify', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ turnstileToken: message.turnstileToken, clientId }),
-          });
-        } catch (e) {
-          return { error: 'network_error' };
-        }
-        const body = await res.json().catch(() => null);
-        if (!res.ok || !body || !body.voteToken) return { error: 'verify_failed' };
-        await AISlop.storage.setVoteToken({ token: body.voteToken, expiresAt: body.expiresAt });
-        return { ok: true, expiresAt: body.expiresAt };
       }
 
       case M.CLEAR_CACHE:

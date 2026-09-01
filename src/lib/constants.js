@@ -13,8 +13,7 @@
     CHANNEL_CACHE: 'aislop_channel_cache', // per-channel upload-cadence cache
     OVERRIDES: 'aislop_overrides', // user's manual trust/flag list, keyed by videoId
     VOTES: 'aislop_votes', // local-only record of the user's own community vote per videoId
-    VOTE_TOKEN: 'aislop_vote_token', // signed {token, expiresAt} from the community backend's /verify
-    CLIENT_ID: 'aislop_client_id', // random per-install UUID, sent with votes/verification
+    CLIENT_ID: 'aislop_client_id', // random per-install UUID, sent with votes
     COMMUNITY_CACHE: 'aislop_community_cache', // per-video community vote-count cache (short TTL)
   };
 
@@ -27,7 +26,6 @@
     strictness: 'balanced', // 'lenient' | 'balanced' | 'strict'
     youtubeApiKey: '', // optional, enables richer channel stats instead of RSS scraping
     communityApiUrl: '', // optional community-ratings backend base URL (empty = disabled)
-    turnstileSiteKey: '', // Turnstile site key for the community-ratings "verify you're human" flow
   };
 
   // Cutoff bands, tunable by strictness. Values are the *minimum* score (0-100)
@@ -127,7 +125,6 @@
     TEST_API_KEY: 'AISLOP_TEST_API_KEY',
     PING_CURRENT: 'AISLOP_PING_CURRENT', // popup -> content script: "what's your current video's result?"
     SET_COMMUNITY_VOTE: 'AISLOP_SET_COMMUNITY_VOTE', // content -> background: cast/change a community vote
-    VERIFY_TURNSTILE: 'AISLOP_VERIFY_TURNSTILE', // options -> background: exchange a Turnstile token for a vote-token
   };
 
   AISlop.constants = {
