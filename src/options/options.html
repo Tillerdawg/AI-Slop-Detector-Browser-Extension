@@ -94,10 +94,14 @@
     <section class="card">
       <h2>Privacy</h2>
       <p class="hint">
-        Everything runs locally in your browser. The only network requests this extension makes are:
-        direct GET requests to <code>youtube.com/feeds/videos.xml</code> for upload cadence, and — only if you add
-        a key above — to <code>googleapis.com</code>. No usage data, browsing history, or telemetry is sent
-        anywhere.
+        Scoring runs locally in your browser. The only network requests this extension makes are:
+        direct GET requests to <code>youtube.com/feeds/videos.xml</code> for upload cadence; — only if you add
+        a key above — to <code>googleapis.com</code>; and — only if you fill in a Backend URL under “Community
+        ratings” above — to that backend, a server you typed in yourself. That last one is the only case in which
+        anything about what you're watching leaves your browser: it gets the video ID of the video you're on, to
+        look up and record votes for it, plus a random per-install ID that isn't tied to your account, name, or
+        any other identity. Leave the Backend URL blank and none of that happens. No usage data, browsing
+        history, or telemetry is sent anywhere.
       </p>
     </section>
 
