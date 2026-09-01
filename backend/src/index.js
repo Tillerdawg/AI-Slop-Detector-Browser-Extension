@@ -19,6 +19,8 @@ const RATE_LIMIT_MAX_PER_WINDOW = 20;
 
 const VOTE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
 // --- base64url + HMAC vote-token helpers -----------------------------------
 
 function base64UrlEncode(bytes) {
@@ -167,6 +169,38 @@ async function handlePostVote(request, env) {
   return handleGetScore(env, videoId);
 }
 
+async function handleVerify(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: 'invalid json' }, 400);
+  }
+  const { turnstileToken, clientId } = body || {};
+  if (!turnstileToken || !clientId) {
+    return json({ error: 'turnstileToken and clientId are required' }, 400);
+  }
+
+  const verifyUrl = env.TURNSTILE_VERIFY_URL || TURNSTILE_VERIFY_URL;
+  let verifyResult;
+  try {
+    const resp = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: turnstileToken }),
+    });
+    verifyResult = await resp.json();
+  } catch (e) {
+    return json({ error: 'turnstile verification unreachable' }, 502);
+  }
+  if (!verifyResult || !verifyResult.success) {
+    return json({ error: 'turnstile verification failed' }, 403);
+  }
+
+  const { token, expiresAt } = await mintVoteToken(clientId, env.VOTE_TOKEN_SECRET || '');
+  return json({ voteToken: token, expiresAt });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -181,6 +215,9 @@ export default {
     }
     if (request.method === 'GET' && url.pathname.startsWith('/score/')) {
       return handleGetScore(env, decodeURIComponent(url.pathname.slice('/score/'.length)));
+    }
+    if (request.method === 'POST' && url.pathname === '/verify') {
+      return handleVerify(request, env);
     }
     if (request.method === 'POST' && url.pathname === '/vote') {
       return handlePostVote(request, env);
