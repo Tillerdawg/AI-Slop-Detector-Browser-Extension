@@ -9,28 +9,47 @@
     return C.RATING_BANDS[band] || C.RATING_BANDS.uncertain;
   }
 
-  function setResultHtml(html) {
-    resultArea.innerHTML = html;
+  function clearResultArea() {
+    while (resultArea.firstChild) resultArea.removeChild(resultArea.firstChild);
   }
 
   function renderMessage(text) {
-    setResultHtml(`<p class="muted">${text}</p>`);
+    clearResultArea();
+    const p = document.createElement('p');
+    p.className = 'muted';
+    p.textContent = text;
+    resultArea.appendChild(p);
   }
 
   function renderResult(result) {
     const info = bandInfo(result.band);
-    const reasons = (result.reasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join('');
-    setResultHtml(`
-      <div class="result-band" style="color:${info.color}">
-        <span>${info.emoji}</span><span>${info.label}</span>
-      </div>
-      <p class="reasons-intro">Reasons for this categorization:</p>
-      <ul class="result-reasons">${reasons}</ul>
-    `);
-  }
+    clearResultArea();
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const bandDiv = document.createElement('div');
+    bandDiv.className = 'result-band';
+    bandDiv.style.color = info.color;
+    const emojiSpan = document.createElement('span');
+    emojiSpan.textContent = info.emoji;
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = info.label;
+    bandDiv.appendChild(emojiSpan);
+    bandDiv.appendChild(labelSpan);
+
+    const intro = document.createElement('p');
+    intro.className = 'reasons-intro';
+    intro.textContent = 'Reasons for this categorization:';
+
+    const list = document.createElement('ul');
+    list.className = 'result-reasons';
+    for (const reason of result.reasons || []) {
+      const li = document.createElement('li');
+      li.textContent = reason;
+      list.appendChild(li);
+    }
+
+    resultArea.appendChild(bandDiv);
+    resultArea.appendChild(intro);
+    resultArea.appendChild(list);
   }
 
   async function getActiveTab() {

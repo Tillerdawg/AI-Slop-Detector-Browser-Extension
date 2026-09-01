@@ -91,6 +91,15 @@ function firefoxManifest() {
     gecko: {
       id: 'ai-slop-detector@tillerdawg.github.io',
       strict_min_version: '115.0',
+      // Required by AMO since Nov 2025. No personal data is collected or
+      // transmitted for storage/processing outside the extension: nothing
+      // is sent to a server we operate (there isn't one), and the two
+      // outbound requests (YouTube RSS, optional user-supplied Data API
+      // key) fetch public video/channel data rather than transmit data
+      // about the user anywhere. See README's Privacy section.
+      data_collection_permissions: {
+        required: ['none'],
+      },
     },
   };
   return m;

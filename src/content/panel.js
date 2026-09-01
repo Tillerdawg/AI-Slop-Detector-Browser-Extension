@@ -64,11 +64,25 @@
 
     const header = document.createElement('div');
     header.className = 'aislop-panel__header';
-    header.innerHTML = `
-      <span class="aislop-panel__emoji">${info.emoji}</span>
-      <span class="aislop-panel__label">${info.label}</span>
-      <button type="button" class="aislop-panel__toggle" aria-expanded="${wasExpanded}" title="Show details">Why?</button>
-    `;
+
+    const emojiSpan = document.createElement('span');
+    emojiSpan.className = 'aislop-panel__emoji';
+    emojiSpan.textContent = info.emoji;
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'aislop-panel__label';
+    labelSpan.textContent = info.label;
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'aislop-panel__toggle';
+    toggleBtn.setAttribute('aria-expanded', String(wasExpanded));
+    toggleBtn.title = 'Show details';
+    toggleBtn.textContent = 'Why?';
+
+    header.appendChild(emojiSpan);
+    header.appendChild(labelSpan);
+    header.appendChild(toggleBtn);
 
     const body = document.createElement('div');
     body.className = 'aislop-panel__body';
@@ -113,7 +127,7 @@
     panel.appendChild(header);
     panel.appendChild(body);
 
-    header.querySelector('.aislop-panel__toggle').addEventListener('click', (e) => {
+    toggleBtn.addEventListener('click', (e) => {
       const btn = e.currentTarget;
       const expanded = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', String(!expanded));
