@@ -1,5 +1,6 @@
 (function () {
   const AISlop = window.AISlop;
+  const api = AISlop.browserApi;
 
   const els = {
     enabled: document.getElementById('enabled'),
@@ -15,6 +16,11 @@
     cacheStats: document.getElementById('cacheStats'),
     clearCache: document.getElementById('clearCache'),
     savedNote: document.getElementById('savedNote'),
+    communityApiUrl: document.getElementById('communityApiUrl'),
+    turnstileSiteKey: document.getElementById('turnstileSiteKey'),
+    verifyHuman: document.getElementById('verifyHuman'),
+    verifyStatus: document.getElementById('verifyStatus'),
+    turnstileFrame: document.getElementById('turnstileFrame'),
   };
 
   let savedNoteTimer = null;
@@ -37,6 +43,8 @@
     els.strictness.value = s.strictness;
     els.useChannelCadence.checked = s.useChannelCadence;
     els.youtubeApiKey.value = s.youtubeApiKey || '';
+    els.communityApiUrl.value = s.communityApiUrl || '';
+    els.turnstileSiteKey.value = s.turnstileSiteKey || '';
   }
 
   els.enabled.addEventListener('change', () => save({ enabled: els.enabled.checked }));
@@ -45,6 +53,21 @@
   els.strictness.addEventListener('change', () => save({ strictness: els.strictness.value }));
   els.useChannelCadence.addEventListener('change', () => save({ useChannelCadence: els.useChannelCadence.checked }));
   els.youtubeApiKey.addEventListener('change', () => save({ youtubeApiKey: els.youtubeApiKey.value.trim() }));
+  els.communityApiUrl.addEventListener('change', async () => {
+    const url = els.communityApiUrl.value.trim();
+    if (url) {
+      try {
+        const origin = new URL(url).origin + '/*';
+        await api.permissions.request({ origins: [origin] });
+      } catch (e) {
+        // Invalid URL, or the user declined the permission prompt -- still
+        // save the typed value so they can fix/retry; community features
+        // simply won't work until the permission is actually granted.
+      }
+    }
+    save({ communityApiUrl: url });
+  });
+  els.turnstileSiteKey.addEventListener('change', () => save({ turnstileSiteKey: els.turnstileSiteKey.value.trim() }));
 
   els.testApiKey.addEventListener('click', async () => {
     els.apiKeyStatus.textContent = 'Testing…';
@@ -86,6 +109,49 @@
     await renderCacheStats();
     flashSaved();
   });
+
+  async function refreshVerifyStatus() {
+    const token = await AISlop.storage.getVoteToken();
+    if (token && token.expiresAt > Date.now()) {
+      const days = Math.ceil((token.expiresAt - Date.now()) / 86400000);
+      els.verifyStatus.textContent = `✅ Verified — expires in ${days} day${days === 1 ? '' : 's'}`;
+    } else {
+      els.verifyStatus.textContent = 'Not verified';
+    }
+  }
+
+  els.verifyHuman.addEventListener('click', () => {
+    const siteKey = els.turnstileSiteKey.value.trim();
+    if (!siteKey) {
+      els.verifyStatus.textContent = 'Set a Turnstile site key above first.';
+      return;
+    }
+    els.turnstileFrame.src = '../sandbox/turnstile-sandbox.html?sitekey=' + encodeURIComponent(siteKey);
+    els.turnstileFrame.hidden = false;
+  });
+
+  window.addEventListener('message', async (event) => {
+    if (!event.data || event.data.source !== 'aislop-turnstile') return;
+    if (event.source !== els.turnstileFrame.contentWindow) return;
+    if (event.data.error) {
+      els.verifyStatus.textContent = '❌ Verification failed, try again';
+      return;
+    }
+    els.verifyStatus.textContent = 'Verifying…';
+    const result = await api.runtime.sendMessage({
+      type: AISlop.constants.MESSAGE_TYPES.VERIFY_TURNSTILE,
+      turnstileToken: event.data.turnstileToken,
+    });
+    els.turnstileFrame.hidden = true;
+    els.turnstileFrame.src = 'about:blank';
+    if (result && result.ok) {
+      await refreshVerifyStatus();
+    } else {
+      els.verifyStatus.textContent = '❌ Verification failed, try again';
+    }
+  });
+
+  refreshVerifyStatus();
 
   loadSettings();
   renderOverrides();

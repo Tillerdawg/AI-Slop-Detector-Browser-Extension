@@ -71,15 +71,24 @@
     </section>
 
     <section class="card">
-      <h2>Community ratings (coming soon)</h2>
+      <h2>Community ratings</h2>
       <p class="hint">
-        A future update will optionally layer in crowd-sourced ratings (similar to SponsorBlock) on top of these
-        local heuristics, backed by a small hosted service. Not wired up yet — this extension works entirely
-        locally today. When available, you'll be able to point it at a backend URL here:
+        Optionally layer in crowd-sourced votes (SponsorBlock-style) on top of the local heuristic, backed by a
+        small hosted service you (or someone you trust) runs. Leave the URL blank to keep everything fully local.
       </p>
       <label class="row">
-        <input type="text" id="communityApiUrl" placeholder="https://…  (leave blank — not yet available)" style="width: 100%; max-width: 360px;" disabled />
+        Backend URL
+        <input type="text" id="communityApiUrl" placeholder="https://your-worker.workers.dev" style="width: 100%; max-width: 360px;" />
       </label>
+      <label class="row">
+        Turnstile site key
+        <input type="text" id="turnstileSiteKey" placeholder="0x4AAAAAAA…" style="width: 100%; max-width: 360px;" />
+      </label>
+      <div class="row">
+        <button id="verifyHuman" type="button">Verify you're human</button>
+        <span id="verifyStatus" class="hint">Not verified</span>
+      </div>
+      <iframe id="turnstileFrame" hidden style="border: 0; width: 300px; height: 70px;"></iframe>
     </section>
 
     <section class="card">
