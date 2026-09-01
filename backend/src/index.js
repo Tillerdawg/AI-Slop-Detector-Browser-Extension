@@ -17,6 +17,67 @@
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 20;
 
+const VOTE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// --- base64url + HMAC vote-token helpers -----------------------------------
+
+function base64UrlEncode(bytes) {
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const binary = atob(str);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function timingSafeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function hmacSign(payload, secret) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return base64UrlEncode(new Uint8Array(sig));
+}
+
+async function mintVoteToken(clientId, secret) {
+  const exp = Date.now() + VOTE_TOKEN_TTL_MS;
+  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ clientId, exp })));
+  const sig = await hmacSign(payload, secret);
+  return { token: `${payload}.${sig}`, expiresAt: exp };
+}
+
+async function verifyVoteToken(token, clientId, secret) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
+  const [payload, sig] = token.split('.');
+  const expectedSig = await hmacSign(payload, secret);
+  if (!timingSafeEqual(sig, expectedSig)) return false;
+  let parsed;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload)));
+  } catch (e) {
+    return false;
+  }
+  if (!parsed || parsed.clientId !== clientId) return false;
+  if (typeof parsed.exp !== 'number' || parsed.exp < Date.now()) return false;
+  return true;
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -118,3 +179,5 @@ export default {
     return json({ error: 'not found' }, 404);
   },
 };
+
+export { base64UrlEncode, base64UrlDecode, hmacSign, mintVoteToken, verifyVoteToken, timingSafeEqual };
