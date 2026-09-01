@@ -161,6 +161,13 @@
         communityBox.appendChild(verifyNote);
       }
 
+      if (result.voteError) {
+        const voteErrorP = document.createElement('p');
+        voteErrorP.className = 'aislop-panel__community-note';
+        voteErrorP.textContent = result.voteError;
+        communityBox.appendChild(voteErrorP);
+      }
+
       body.appendChild(communityBox);
     }
 

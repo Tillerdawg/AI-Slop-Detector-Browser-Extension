@@ -92,14 +92,36 @@
     await refreshWatchPanel(true);
   }
 
+  function communityVoteErrorMessage(error) {
+    if (error === 'not_verified') return "Verify you're human in Settings to vote.";
+    if (error === 'network_error') return "Couldn't reach the community backend — try again in a moment.";
+    return "Couldn't record your vote — try again in a moment.";
+  }
+
   async function applyVote(signals, vote) {
     if (!signals.videoId) return;
-    await api.runtime.sendMessage({
-      type: C.MESSAGE_TYPES.SET_COMMUNITY_VOTE,
-      videoId: signals.videoId,
-      channelId: signals.channelId,
-      vote,
-    });
+    let result;
+    try {
+      result = await api.runtime.sendMessage({
+        type: C.MESSAGE_TYPES.SET_COMMUNITY_VOTE,
+        videoId: signals.videoId,
+        channelId: signals.channelId,
+        vote,
+      });
+    } catch (e) {
+      result = null; // falls through to the generic error message below
+    }
+    // Without this, every failure (unverified, rate-limited, backend down)
+    // looks identical to the user: nothing visibly happens. Re-render the
+    // panel we already have with an inline explanation instead. The message
+    // clears itself on the next GET_SCORE, whose fresh result carries no
+    // voteError.
+    if (!result || result.error) {
+      if (lastResult && lastSignals && lastSignals.videoId === signals.videoId) {
+        applyResult(signals, Object.assign({}, lastResult, { voteError: communityVoteErrorMessage(result && result.error) }));
+      }
+      return;
+    }
     await refreshWatchPanel(true);
   }
 
