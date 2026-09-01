@@ -41,10 +41,12 @@
 
   /**
    * @param {object} result heuristics.scoreVideo() output
-   * @param {object} handlers { onMarkTrusted, onMarkFlagged, onClearOverride }
+   * @param {object} handlers { onMarkTrusted, onMarkFlagged, onClearOverride, onVote }
+   * @param {object} settings extension settings (e.g. communityApiUrl)
    */
-  function renderWatchPanel(result, handlers) {
+  function renderWatchPanel(result, handlers, settings) {
     handlers = handlers || {};
+    settings = settings || {};
     const mount = findMountPoint();
     if (!mount) return false;
 
@@ -118,6 +120,49 @@
       actions.appendChild(flagBtn);
     }
     body.appendChild(actions);
+
+    if (settings.communityApiUrl) {
+      const communityBox = document.createElement('div');
+      communityBox.className = 'aislop-panel__community';
+
+      const counts = result.communityVotes || { ai: 0, human: 0, total: 0 };
+      if (counts.total > 0) {
+        const countsP = document.createElement('p');
+        countsP.className = 'aislop-panel__community-counts';
+        countsP.textContent = `Community: ${counts.human} \u{1F44D} human, ${counts.ai} \u{1F916} AI`;
+        communityBox.appendChild(countsP);
+      }
+
+      const voteRow = document.createElement('div');
+      voteRow.className = 'aislop-panel__community-actions';
+
+      const myVote = result.myVote || null;
+
+      const voteHumanBtn = document.createElement('button');
+      voteHumanBtn.type = 'button';
+      voteHumanBtn.textContent = myVote === 'human' ? '\u{1F44D} Voted human' : '\u{1F44D} Vote human';
+      voteHumanBtn.disabled = myVote === 'human';
+      voteHumanBtn.addEventListener('click', () => handlers.onVote && handlers.onVote('human'));
+
+      const voteAiBtn = document.createElement('button');
+      voteAiBtn.type = 'button';
+      voteAiBtn.textContent = myVote === 'ai' ? '\u{1F916} Voted AI' : '\u{1F916} Vote AI';
+      voteAiBtn.disabled = myVote === 'ai';
+      voteAiBtn.addEventListener('click', () => handlers.onVote && handlers.onVote('ai'));
+
+      voteRow.appendChild(voteHumanBtn);
+      voteRow.appendChild(voteAiBtn);
+      communityBox.appendChild(voteRow);
+
+      if (result.communityVerified === false) {
+        const verifyNote = document.createElement('p');
+        verifyNote.className = 'aislop-panel__community-note';
+        verifyNote.textContent = "Verify you're human in Settings to vote.";
+        communityBox.appendChild(verifyNote);
+      }
+
+      body.appendChild(communityBox);
+    }
 
     const note = document.createElement('p');
     note.className = 'aislop-panel__note';

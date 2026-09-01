@@ -119,3 +119,42 @@ html[dark] .aislop-panel {
   font-size: 11px;
   opacity: 0.65;
 }
+
+.aislop-panel__community {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid currentColor;
+  opacity: 0.9;
+}
+
+.aislop-panel__community-counts {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.aislop-panel__community-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aislop-panel__community-actions button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.aislop-panel__community-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.aislop-panel__community-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.75;
+}

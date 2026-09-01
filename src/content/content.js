@@ -65,11 +65,16 @@
     lastResult = result;
     lastSignals = signals;
     if (settings.showOnWatchPage) {
-      AISlop.panel.renderWatchPanel(result, {
-        onMarkTrusted: () => applyOverride(signals, { trusted: true, videoTitle: signals.title }),
-        onMarkFlagged: () => applyOverride(signals, { flagged: true, videoTitle: signals.title }),
-        onClearOverride: () => applyOverride(signals, null),
-      });
+      AISlop.panel.renderWatchPanel(
+        result,
+        {
+          onMarkTrusted: () => applyOverride(signals, { trusted: true, videoTitle: signals.title }),
+          onMarkFlagged: () => applyOverride(signals, { flagged: true, videoTitle: signals.title }),
+          onClearOverride: () => applyOverride(signals, null),
+          onVote: (vote) => applyVote(signals, vote),
+        },
+        settings
+      );
     } else {
       AISlop.panel.removePanel();
     }
@@ -81,6 +86,17 @@
       type: C.MESSAGE_TYPES.SET_OVERRIDE,
       videoId: signals.videoId,
       override,
+    });
+    await refreshWatchPanel(true);
+  }
+
+  async function applyVote(signals, vote) {
+    if (!signals.videoId) return;
+    await api.runtime.sendMessage({
+      type: C.MESSAGE_TYPES.SET_COMMUNITY_VOTE,
+      videoId: signals.videoId,
+      channelId: signals.channelId,
+      vote,
     });
     await refreshWatchPanel(true);
   }
