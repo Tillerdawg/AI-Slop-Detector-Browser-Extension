@@ -21,6 +21,40 @@ const VOTE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
+// --- input validation ------------------------------------------------------
+// Client-supplied identifiers are stored verbatim, so bound them here rather
+// than only truthiness-checking them. Real YouTube ids are 11 chars; the caps
+// below leave slack without accepting multi-KB junk.
+
+const VIDEO_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+const MAX_CHANNEL_ID_LENGTH = 64;
+const MAX_CLIENT_ID_LENGTH = 128;
+const MAX_REASON_LENGTH = 500;
+
+function isValidVideoId(value) {
+  return typeof value === 'string' && VIDEO_ID_RE.test(value);
+}
+
+function isValidClientId(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= MAX_CLIENT_ID_LENGTH;
+}
+
+// channelId and reason are optional: absent/empty is fine, oversized is not.
+function isValidOptionalString(value, maxLength) {
+  if (value === undefined || value === null || value === '') return true;
+  return typeof value === 'string' && value.length <= maxLength;
+}
+
+// decodeURIComponent throws URIError on a malformed escape (e.g. "/score/%");
+// treat an undecodable segment as a literal one rather than a 500.
+function safeDecode(str) {
+  try {
+    return decodeURIComponent(str);
+  } catch (e) {
+    return str;
+  }
+}
+
 // --- base64url + HMAC vote-token helpers -----------------------------------
 
 function base64UrlEncode(bytes) {
@@ -75,7 +109,7 @@ async function verifyVoteToken(token, clientId, secret) {
   } catch (e) {
     return false;
   }
-  if (!parsed || parsed.clientId !== clientId) return false;
+  if (!parsed || typeof clientId !== 'string' || parsed.clientId !== clientId) return false;
   if (typeof parsed.exp !== 'number' || parsed.exp < Date.now()) return false;
   return true;
 }
@@ -141,9 +175,9 @@ async function handleGetScore(env, videoId) {
 }
 
 async function handlePostVote(request, env) {
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const allowed = await checkRateLimit(env, ip);
-  if (!allowed) return json({ error: 'rate limited' }, 429);
+  if (typeof env.VOTE_TOKEN_SECRET !== 'string' || env.VOTE_TOKEN_SECRET.length === 0) {
+    return json({ error: 'server misconfigured' }, 500);
+  }
 
   let body;
   try {
@@ -152,17 +186,26 @@ async function handlePostVote(request, env) {
     return json({ error: 'invalid json' }, 400);
   }
   const { videoId, channelId, vote, clientId } = body || {};
-  if (!videoId || !clientId || (vote !== 'ai' && vote !== 'human')) {
+  if (!isValidVideoId(videoId) || !isValidClientId(clientId) || (vote !== 'ai' && vote !== 'human')) {
     return json({ error: 'videoId, clientId, and vote ("ai"|"human") are required' }, 400);
   }
+  if (!isValidOptionalString(channelId, MAX_CHANNEL_ID_LENGTH)) {
+    return json({ error: `channelId must be at most ${MAX_CHANNEL_ID_LENGTH} characters` }, 400);
+  }
 
+  // Verify the token before touching D1: verification is pure CPU, so
+  // unauthenticated traffic never consumes rate-limit budget or writes rows.
   const voteToken = request.headers.get('x-vote-token');
-  const validToken = await verifyVoteToken(voteToken, clientId, env.VOTE_TOKEN_SECRET || '');
+  const validToken = await verifyVoteToken(voteToken, clientId, env.VOTE_TOKEN_SECRET);
   if (!validToken) return json({ error: 'not verified' }, 401);
 
   if (await isBlocklisted(env, videoId)) {
     return json({ error: 'video is blocklisted' }, 403);
   }
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const allowed = await checkRateLimit(env, ip);
+  if (!allowed) return json({ error: 'rate limited' }, 429);
 
   try {
     await env.DB.prepare(
@@ -178,6 +221,14 @@ async function handlePostVote(request, env) {
 }
 
 async function handleVerify(request, env) {
+  if (typeof env.VOTE_TOKEN_SECRET !== 'string' || env.VOTE_TOKEN_SECRET.length === 0) {
+    return json({ error: 'server misconfigured' }, 500);
+  }
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const allowed = await checkRateLimit(env, ip);
+  if (!allowed) return json({ error: 'rate limited' }, 429);
+
   let body;
   try {
     body = await request.json();
@@ -185,7 +236,7 @@ async function handleVerify(request, env) {
     return json({ error: 'invalid json' }, 400);
   }
   const { turnstileToken, clientId } = body || {};
-  if (!turnstileToken || !clientId) {
+  if (!turnstileToken || !isValidClientId(clientId)) {
     return json({ error: 'turnstileToken and clientId are required' }, 400);
   }
 
@@ -197,6 +248,9 @@ async function handleVerify(request, env) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: turnstileToken }),
     });
+    // A non-2xx from siteverify means Turnstile itself failed, not the user --
+    // don't mislead them with a "you failed the CAPTCHA" 403.
+    if (!resp.ok) return json({ error: 'turnstile verification unreachable' }, 502);
     verifyResult = await resp.json();
   } catch (e) {
     return json({ error: 'turnstile verification unreachable' }, 502);
@@ -205,13 +259,16 @@ async function handleVerify(request, env) {
     return json({ error: 'turnstile verification failed' }, 403);
   }
 
-  const { token, expiresAt } = await mintVoteToken(clientId, env.VOTE_TOKEN_SECRET || '');
+  const { token, expiresAt } = await mintVoteToken(clientId, env.VOTE_TOKEN_SECRET);
   return json({ voteToken: token, expiresAt });
 }
 
 function checkAdmin(request, env) {
-  const token = request.headers.get('x-admin-token') || '';
-  return timingSafeEqual(token, env.ADMIN_TOKEN || '');
+  // Fail closed: with no ADMIN_TOKEN configured, comparing against '' would
+  // let a request with no header at all through.
+  const expected = env.ADMIN_TOKEN;
+  if (typeof expected !== 'string' || expected.length === 0) return false;
+  return timingSafeEqual(request.headers.get('x-admin-token') || '', expected);
 }
 
 async function handleAddBlocklist(request, env) {
@@ -223,7 +280,10 @@ async function handleAddBlocklist(request, env) {
     return json({ error: 'invalid json' }, 400);
   }
   const { videoId, reason } = body || {};
-  if (!videoId) return json({ error: 'videoId is required' }, 400);
+  if (!isValidVideoId(videoId)) return json({ error: 'videoId is required' }, 400);
+  if (!isValidOptionalString(reason, MAX_REASON_LENGTH)) {
+    return json({ error: `reason must be at most ${MAX_REASON_LENGTH} characters` }, 400);
+  }
   await env.DB.prepare(
     `INSERT INTO blocklist (video_id, reason, created_at) VALUES (?, ?, ?)
      ON CONFLICT(video_id) DO UPDATE SET reason = excluded.reason, created_at = excluded.created_at`
@@ -235,38 +295,51 @@ async function handleAddBlocklist(request, env) {
 
 async function handleRemoveBlocklist(request, env, videoId) {
   if (!checkAdmin(request, env)) return json({ error: 'unauthorized' }, 401);
+  if (!videoId) return json({ error: 'videoId is required' }, 400);
   await env.DB.prepare('DELETE FROM blocklist WHERE video_id = ?').bind(videoId).run();
   return json({ ok: true, videoId });
 }
 
+async function route(request, env) {
+  const url = new URL(request.url);
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+        'access-control-allow-headers': 'content-type, x-vote-token, x-admin-token',
+      },
+    });
+  }
+  if (request.method === 'GET' && url.pathname.startsWith('/score/')) {
+    return handleGetScore(env, safeDecode(url.pathname.slice('/score/'.length)));
+  }
+  if (request.method === 'POST' && url.pathname === '/verify') {
+    return handleVerify(request, env);
+  }
+  if (request.method === 'POST' && url.pathname === '/admin/blocklist') {
+    return handleAddBlocklist(request, env);
+  }
+  if (request.method === 'DELETE' && url.pathname.startsWith('/admin/blocklist/')) {
+    return handleRemoveBlocklist(request, env, safeDecode(url.pathname.slice('/admin/blocklist/'.length)));
+  }
+  if (request.method === 'POST' && url.pathname === '/vote') {
+    return handlePostVote(request, env);
+  }
+  return json({ error: 'not found' }, 404);
+}
+
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'access-control-allow-origin': '*',
-          'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
-          'access-control-allow-headers': 'content-type, x-vote-token, x-admin-token',
-        },
-      });
+    // Every error path returns JSON + CORS; an uncaught throw would not, so
+    // catch anything unexpected here rather than letting the runtime 500.
+    try {
+      return await route(request, env);
+    } catch (e) {
+      // Swallowing the throw would otherwise also swallow it from the logs.
+      console.error('unhandled error', (e && e.stack) || e);
+      return json({ error: 'internal error' }, 500);
     }
-    if (request.method === 'GET' && url.pathname.startsWith('/score/')) {
-      return handleGetScore(env, decodeURIComponent(url.pathname.slice('/score/'.length)));
-    }
-    if (request.method === 'POST' && url.pathname === '/verify') {
-      return handleVerify(request, env);
-    }
-    if (request.method === 'POST' && url.pathname === '/admin/blocklist') {
-      return handleAddBlocklist(request, env);
-    }
-    if (request.method === 'DELETE' && url.pathname.startsWith('/admin/blocklist/')) {
-      return handleRemoveBlocklist(request, env, decodeURIComponent(url.pathname.slice('/admin/blocklist/'.length)));
-    }
-    if (request.method === 'POST' && url.pathname === '/vote') {
-      return handlePostVote(request, env);
-    }
-    return json({ error: 'not found' }, 404);
   },
 };
 

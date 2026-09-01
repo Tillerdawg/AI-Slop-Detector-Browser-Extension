@@ -56,3 +56,67 @@ test('DELETE /admin/blocklist/:videoId requires a valid admin token', async () =
   assert.equal(res.status, 401);
   await mf.dispose();
 });
+
+test('admin endpoints fail closed when ADMIN_TOKEN is not configured', async () => {
+  const { mf } = await makeTestWorker(undefined, ['ADMIN_TOKEN']);
+
+  const noHeader = await mf.dispatchFetch('http://localhost/admin/blocklist', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ videoId: 'vid-1', reason: 'brigaded' }),
+  });
+  assert.equal(noHeader.status, 401);
+
+  const emptyHeader = await mf.dispatchFetch('http://localhost/admin/blocklist', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-admin-token': '' },
+    body: JSON.stringify({ videoId: 'vid-1', reason: 'brigaded' }),
+  });
+  assert.equal(emptyHeader.status, 401);
+
+  const guessedHeader = await mf.dispatchFetch('http://localhost/admin/blocklist', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-admin-token': 'anything' },
+    body: JSON.stringify({ videoId: 'vid-1', reason: 'brigaded' }),
+  });
+  assert.equal(guessedHeader.status, 401);
+
+  const del = await mf.dispatchFetch('http://localhost/admin/blocklist/vid-1', { method: 'DELETE' });
+  assert.equal(del.status, 401);
+
+  await mf.dispose();
+});
+
+test('POST /admin/blocklist rejects a malformed or oversized videoId', async () => {
+  const { mf } = await makeTestWorker();
+  for (const videoId of ['', 'has spaces', 'bad/slash', 'x'.repeat(33), 42]) {
+    const res = await mf.dispatchFetch('http://localhost/admin/blocklist', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-token': 'test-admin-token' },
+      body: JSON.stringify({ videoId }),
+    });
+    assert.equal(res.status, 400, `expected 400 for videoId ${JSON.stringify(videoId)}`);
+  }
+  await mf.dispose();
+});
+
+test('POST /admin/blocklist rejects an oversized reason', async () => {
+  const { mf } = await makeTestWorker();
+  const res = await mf.dispatchFetch('http://localhost/admin/blocklist', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-admin-token': 'test-admin-token' },
+    body: JSON.stringify({ videoId: 'vid-1', reason: 'x'.repeat(501) }),
+  });
+  assert.equal(res.status, 400);
+  await mf.dispose();
+});
+
+test('DELETE /admin/blocklist/ with an empty videoId returns 400', async () => {
+  const { mf } = await makeTestWorker();
+  const res = await mf.dispatchFetch('http://localhost/admin/blocklist/', {
+    method: 'DELETE',
+    headers: { 'x-admin-token': 'test-admin-token' },
+  });
+  assert.equal(res.status, 400);
+  await mf.dispose();
+});

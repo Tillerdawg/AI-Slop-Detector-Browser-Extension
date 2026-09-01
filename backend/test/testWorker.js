@@ -29,12 +29,17 @@ function splitStatements(sql) {
     .filter(Boolean);
 }
 
-export async function makeTestWorker(bindings) {
+// `omit` is a list of binding names to leave out entirely -- setting a key to
+// `undefined` is not the same as the binding being absent from `env`, and the
+// fail-closed checks for missing secrets need the genuinely-absent case.
+export async function makeTestWorker(bindings, omit) {
+  const merged = Object.assign({}, DEFAULT_BINDINGS, bindings || {});
+  for (const key of omit || []) delete merged[key];
   const mf = new Miniflare({
     modules: true,
     scriptPath: WORKER_PATH,
     d1Databases: ['DB'],
-    bindings: Object.assign({}, DEFAULT_BINDINGS, bindings || {}),
+    bindings: merged,
   });
   const db = await mf.getD1Database('DB');
   const schema = readFileSync(SCHEMA_PATH, 'utf8');

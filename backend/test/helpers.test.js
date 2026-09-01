@@ -54,6 +54,14 @@ test('verifyVoteToken rejects a token signed with the wrong secret', async () =>
   assert.equal(valid, false);
 });
 
+test('verifyVoteToken rejects a non-string clientId even against a clientId-less payload', async () => {
+  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ exp: Date.now() + 60_000 })));
+  const sig = await hmacSign(payload, 'test-secret');
+  const token = `${payload}.${sig}`;
+  assert.equal(await verifyVoteToken(token, undefined, 'test-secret'), false);
+  assert.equal(await verifyVoteToken(token, null, 'test-secret'), false);
+});
+
 test('timingSafeEqual', () => {
   assert.equal(timingSafeEqual('abc', 'abc'), true);
   assert.equal(timingSafeEqual('abc', 'abd'), false);

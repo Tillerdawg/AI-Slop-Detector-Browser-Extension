@@ -37,6 +37,30 @@ test('GET /score/:videoId aggregates votes and computes communityScore', async (
   await mf.dispose();
 });
 
+test('GET /score/:videoId treats an undecodable escape as a literal id', async () => {
+  // decodeURIComponent throws URIError on %C0%80 (invalid UTF-8); safeDecode
+  // keeps it as-is instead, so the request still gets a normal answer.
+  const { mf } = await makeTestWorker();
+  const res = await mf.dispatchFetch('http://localhost/score/%C0%80');
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.videoId, '%C0%80');
+  assert.equal(body.total, 0);
+  await mf.dispose();
+});
+
+test('an unroutable URL still returns JSON + CORS rather than a bare runtime 500', async () => {
+  // "/score/%" is rejected by the runtime's own URL parser, so the request
+  // throws before any handler runs -- the top-level catch must still answer.
+  const { mf } = await makeTestWorker();
+  const res = await mf.dispatchFetch('http://localhost/score/%');
+  assert.equal(res.status, 500);
+  assert.equal(res.headers.get('access-control-allow-origin'), '*');
+  assert.equal(res.headers.get('content-type'), 'application/json');
+  assert.deepEqual(await res.json(), { error: 'internal error' });
+  await mf.dispose();
+});
+
 test('GET /score/:videoId suppresses vote data for a blocklisted video', async () => {
   const { mf, db } = await makeTestWorker();
   await db
