@@ -96,17 +96,33 @@ function chromeManifest() {
 
 function firefoxManifest() {
   const m = baseManifest();
+  // Firefox's MV3 has no Chrome-style sandboxed extension pages, and these
+  // keys risk AMO linter warnings for unsupported manifest fields. Dropping
+  // them changes nothing functionally: the Turnstile human-verification flow
+  // already can't work on Firefox (its extension-page CSP blocks the same
+  // remote script Chrome's sandbox exists to permit) -- a pre-existing,
+  // documented known limitation, not a regression introduced here.
+  delete m.sandbox;
+  delete m.content_security_policy;
   m.background = { scripts: [...BACKGROUND_LIB_JS, 'background/background.js'] };
   m.browser_specific_settings = {
     gecko: {
       id: 'ai-slop-detector@tillerdawg.github.io',
       strict_min_version: '115.0',
-      // Required by AMO since Nov 2025. No personal data is collected or
-      // transmitted for storage/processing outside the extension: nothing
-      // is sent to a server we operate (there isn't one), and the two
-      // outbound requests (YouTube RSS, optional user-supplied Data API
-      // key) fetch public video/channel data rather than transmit data
-      // about the user anywhere. See README's Privacy section.
+      // Required by AMO since Nov 2025. Nothing is *required*: out of the
+      // box the only outbound requests (YouTube RSS, plus googleapis.com if
+      // the user supplies their own Data API key) fetch public
+      // video/channel data rather than transmit anything about the user.
+      // The opt-in community-ratings feature does send data, but only when
+      // the user configures it: if they type in a backend URL themselves,
+      // the extension sends that backend the ID of the video being watched
+      // plus a random per-install identifier (never tied to any identity).
+      // TODO before any AMO submission: check Mozilla's current
+      // data_collection_permissions schema docs to see whether that opt-in
+      // flow must also be declared under an `optional` category -- that
+      // needs verification against the live schema rather than a guess,
+      // hence `required: ['none']` alone for now. See README's Privacy
+      // section.
       data_collection_permissions: {
         required: ['none'],
       },
