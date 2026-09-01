@@ -357,6 +357,9 @@
   function blendCommunityScore(result, community, opts) {
     if (!result || result.overridden) return result;
     if (!community || !community.total) return result;
+    // The backend types communityScore as number|null; the blend math below
+    // assumes a number whenever total > 0. Don't corrupt the score if it isn't.
+    if (typeof community.communityScore !== 'number') return result;
     opts = opts || {};
 
     const weight = Math.min(0.5, community.total / 10);

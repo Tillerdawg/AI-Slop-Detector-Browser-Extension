@@ -189,5 +189,13 @@ function assert(cond, msg) {
   assert(blended.reasons.some((r) => r.includes('Community')), 'a community-vote reason should be appended');
 }
 
+// 16. blendCommunityScore: a malformed communityScore is a no-op, not a corrupted score.
+{
+  const base = heuristics.scoreVideo({ title: 'A normal title' });
+  const blended = heuristics.blendCommunityScore(base, { aiVotes: 5, humanVotes: 0, total: 5, communityScore: null });
+  assert(blended.score === base.score, 'a null communityScore alongside a nonzero total should not change the score (got ' + blended.score + ')');
+  assert(blended.communityVotes === undefined, 'no communityVotes field when the community payload is malformed');
+}
+
 console.log(`\n${passed} passed, ${failed} failed.`);
 process.exit(failed ? 1 : 0);
