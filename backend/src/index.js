@@ -209,6 +209,36 @@ async function handleVerify(request, env) {
   return json({ voteToken: token, expiresAt });
 }
 
+function checkAdmin(request, env) {
+  const token = request.headers.get('x-admin-token') || '';
+  return timingSafeEqual(token, env.ADMIN_TOKEN || '');
+}
+
+async function handleAddBlocklist(request, env) {
+  if (!checkAdmin(request, env)) return json({ error: 'unauthorized' }, 401);
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: 'invalid json' }, 400);
+  }
+  const { videoId, reason } = body || {};
+  if (!videoId) return json({ error: 'videoId is required' }, 400);
+  await env.DB.prepare(
+    `INSERT INTO blocklist (video_id, reason, created_at) VALUES (?, ?, ?)
+     ON CONFLICT(video_id) DO UPDATE SET reason = excluded.reason, created_at = excluded.created_at`
+  )
+    .bind(videoId, reason || null, Date.now())
+    .run();
+  return json({ ok: true, videoId });
+}
+
+async function handleRemoveBlocklist(request, env, videoId) {
+  if (!checkAdmin(request, env)) return json({ error: 'unauthorized' }, 401);
+  await env.DB.prepare('DELETE FROM blocklist WHERE video_id = ?').bind(videoId).run();
+  return json({ ok: true, videoId });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -226,6 +256,12 @@ export default {
     }
     if (request.method === 'POST' && url.pathname === '/verify') {
       return handleVerify(request, env);
+    }
+    if (request.method === 'POST' && url.pathname === '/admin/blocklist') {
+      return handleAddBlocklist(request, env);
+    }
+    if (request.method === 'DELETE' && url.pathname.startsWith('/admin/blocklist/')) {
+      return handleRemoveBlocklist(request, env, decodeURIComponent(url.pathname.slice('/admin/blocklist/'.length)));
     }
     if (request.method === 'POST' && url.pathname === '/vote') {
       return handlePostVote(request, env);
