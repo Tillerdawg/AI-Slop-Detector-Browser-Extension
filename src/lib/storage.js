@@ -11,6 +11,7 @@
 
   const MAX_SCORE_ENTRIES = 2000;
   const MAX_CHANNEL_ENTRIES = 500;
+  const MAX_COMMUNITY_ENTRIES = 2000;
 
   function get(keys) {
     return Promise.resolve(api.storage.local.get(keys));
@@ -90,8 +91,62 @@
     return overrides;
   }
 
+  async function getVoteToken() {
+    const stored = await get(C.STORAGE_KEYS.VOTE_TOKEN);
+    return stored[C.STORAGE_KEYS.VOTE_TOKEN] || null;
+  }
+
+  async function setVoteToken(voteToken) {
+    await set({ [C.STORAGE_KEYS.VOTE_TOKEN]: voteToken });
+  }
+
+  async function getClientId() {
+    const stored = await get(C.STORAGE_KEYS.CLIENT_ID);
+    let clientId = stored[C.STORAGE_KEYS.CLIENT_ID];
+    if (!clientId) {
+      clientId = crypto.randomUUID();
+      await set({ [C.STORAGE_KEYS.CLIENT_ID]: clientId });
+    }
+    return clientId;
+  }
+
+  async function getVotes() {
+    const stored = await get(C.STORAGE_KEYS.VOTES);
+    return stored[C.STORAGE_KEYS.VOTES] || {};
+  }
+
+  async function setMyVote(videoId, vote) {
+    const votes = await getVotes();
+    votes[videoId] = vote;
+    await set({ [C.STORAGE_KEYS.VOTES]: votes });
+    return votes;
+  }
+
+  async function getCommunityCacheEntry(videoId) {
+    const stored = await get(C.STORAGE_KEYS.COMMUNITY_CACHE);
+    const map = stored[C.STORAGE_KEYS.COMMUNITY_CACHE] || {};
+    const entry = map[videoId];
+    if (entry && entry.expiresAt > Date.now()) return entry.value;
+    return null;
+  }
+
+  async function setCommunityCacheEntry(videoId, value) {
+    const stored = await get(C.STORAGE_KEYS.COMMUNITY_CACHE);
+    let map = stored[C.STORAGE_KEYS.COMMUNITY_CACHE] || {};
+    map[videoId] = { value, expiresAt: Date.now() + C.CACHE_TTL_MS.COMMUNITY };
+    map = pruneMap(map, null, MAX_COMMUNITY_ENTRIES);
+    await set({ [C.STORAGE_KEYS.COMMUNITY_CACHE]: map });
+  }
+
+  async function clearCommunityCacheEntry(videoId) {
+    const stored = await get(C.STORAGE_KEYS.COMMUNITY_CACHE);
+    const map = stored[C.STORAGE_KEYS.COMMUNITY_CACHE] || {};
+    delete map[videoId];
+    await set({ [C.STORAGE_KEYS.COMMUNITY_CACHE]: map });
+  }
+
   async function clearCaches() {
-    await remove([C.STORAGE_KEYS.SCORE_CACHE, C.STORAGE_KEYS.CHANNEL_CACHE]);
+    await remove([C.STORAGE_KEYS.SCORE_CACHE, C.STORAGE_KEYS.CHANNEL_CACHE, C.STORAGE_KEYS.COMMUNITY_CACHE]);
   }
 
   async function cacheStats() {
@@ -116,6 +171,14 @@
     setChannelCacheEntry,
     getOverrides,
     setOverride,
+    getVoteToken,
+    setVoteToken,
+    getClientId,
+    getVotes,
+    setMyVote,
+    getCommunityCacheEntry,
+    setCommunityCacheEntry,
+    clearCommunityCacheEntry,
     clearCaches,
     cacheStats,
   };

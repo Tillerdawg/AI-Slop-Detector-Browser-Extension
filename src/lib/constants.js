@@ -12,7 +12,10 @@
     SCORE_CACHE: 'aislop_score_cache', // per-video score cache
     CHANNEL_CACHE: 'aislop_channel_cache', // per-channel upload-cadence cache
     OVERRIDES: 'aislop_overrides', // user's manual trust/flag list, keyed by videoId
-    VOTES: 'aislop_votes', // local-only personal votes per videoId (future sync seam)
+    VOTES: 'aislop_votes', // local-only record of the user's own community vote per videoId
+    VOTE_TOKEN: 'aislop_vote_token', // signed {token, expiresAt} from the community backend's /verify
+    CLIENT_ID: 'aislop_client_id', // random per-install UUID, sent with votes/verification
+    COMMUNITY_CACHE: 'aislop_community_cache', // per-video community vote-count cache (short TTL)
   };
 
   const DEFAULT_SETTINGS = {
@@ -23,7 +26,8 @@
     useChannelCadence: true, // fetch channel RSS feed for upload-frequency signal
     strictness: 'balanced', // 'lenient' | 'balanced' | 'strict'
     youtubeApiKey: '', // optional, enables richer channel stats instead of RSS scraping
-    communityApiUrl: '', // optional future backend base URL (empty = disabled)
+    communityApiUrl: '', // optional community-ratings backend base URL (empty = disabled)
+    turnstileSiteKey: '', // Turnstile site key for the community-ratings "verify you're human" flow
   };
 
   // Cutoff bands, tunable by strictness. Values are the *minimum* score (0-100)
@@ -106,6 +110,7 @@
   const CACHE_TTL_MS = {
     SCORE: 12 * 60 * 60 * 1000, // 12h - per-video score
     CHANNEL: 24 * 60 * 60 * 1000, // 24h - per-channel upload cadence
+    COMMUNITY: 10 * 60 * 1000, // 10min - community vote counts (kept short so votes don't go stale for hours)
   };
 
   const RSS_MIN_INTERVAL_MS = 1500; // min gap between outbound RSS fetches (politeness throttle)
@@ -121,6 +126,8 @@
     CACHE_STATS: 'AISLOP_CACHE_STATS',
     TEST_API_KEY: 'AISLOP_TEST_API_KEY',
     PING_CURRENT: 'AISLOP_PING_CURRENT', // popup -> content script: "what's your current video's result?"
+    SET_COMMUNITY_VOTE: 'AISLOP_SET_COMMUNITY_VOTE', // content -> background: cast/change a community vote
+    VERIFY_TURNSTILE: 'AISLOP_VERIFY_TURNSTILE', // options -> background: exchange a Turnstile token for a vote-token
   };
 
   AISlop.constants = {
